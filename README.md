@@ -194,7 +194,7 @@ The fraud detection system employs a dual-model approach for comprehensive secur
 
 ### File Structure
 
-```
+```markdown
 banking-transaction-system/
 ├── app.py                 # Main Flask application
 ├── fraud_detection.py     # Fraud detection models and logic
