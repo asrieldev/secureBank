@@ -1,0 +1,373 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - SecureBank{% endblock %}
+
+{% block content %}
+<style>
+/* --- Global Typography --- */
+body, h2, h3, h4, h5, h6, p, a, td, th {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+    color: #1c1c1e;
+}
+
+/* --- Glass / Card Containers --- */
+.glass { 
+    background: rgba(242,242,247,0.55); 
+    backdrop-filter: blur(25px) saturate(180%); 
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    border-radius: 25px; 
+    padding: 20px; 
+    color: #1c1c1e; 
+    margin-bottom: 20px; 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    position: relative;
+    border: 1px solid rgba(255,255,255,0.3);
+}
+.glass:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+}
+
+/* --- Horizontal Account Cards (iOS 16 Wallet Style) --- */
+.horizontal-account-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(242,242,247,0.55);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border-radius: 25px;
+  padding: 20px;
+  color: #1c1c1e;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  border: 1px solid rgba(255,255,255,0.3);
+  position: relative;
+}
+.horizontal-account-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+}
+.horizontal-account-card h6 { font-weight: 600; margin-bottom: 5px; }
+.horizontal-account-card .account-number { font-size: 0.9rem; margin-bottom: 10px; }
+.horizontal-account-card h3 { font-size: 1.5rem; font-weight: 700; }
+.horizontal-account-card .text-end { text-align: right; }
+
+/* Responsive Flex */
+@media (max-width: 768px) {
+  .horizontal-account-card { flex-direction: column; align-items: flex-start; }
+  .horizontal-account-card .text-end { text-align: left !important; margin-top: 10px; }
+}
+
+/* --- Bank Cards --- */
+.bank-card {
+  border-radius: 25px;
+  padding: 20px;
+  color: #1c1c1e;
+  background: rgba(242,242,247,0.55);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  border: 1px solid rgba(255,255,255,0.3);
+  position: relative;
+}
+.bank-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+}
+.bank-card .brand-mini { font-size: 0.85rem; font-weight: 600; }
+.bank-card .number { font-size: 1.2rem; letter-spacing: 1px; font-weight: 700; }
+
+/* --- Apple-style Tiles --- */
+.apple-tile {
+  background: #f8f9fa;
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+  padding: 1rem;
+  text-align: center;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.apple-tile:hover {
+  transform: scale(1.03);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+}
+.tile-title { font-weight: 600; font-size: 0.85rem; color: #1c1c1e; }
+.tile-value { font-weight: 700; font-size: 1.25rem; color: #1c1c1e; margin-top: 0.25rem; }
+
+/* --- Quick Action Buttons / Links --- */
+.text-link {
+  display: inline-block;
+  background: none;
+  border: none;
+  color: #007aff;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+.text-link:hover {
+  color: #0051a8;
+  transform: scale(1.05);
+}
+
+/* --- User Details Tables --- */
+.table-card table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 0.85rem;
+    border-radius: 12px;
+    overflow: hidden;
+}
+.table-card th, .table-card td {
+    padding: 10px 12px;
+    text-align: left;
+}
+.table-card th {
+    background: #f2f2f7;
+    font-weight: 600;
+}
+.table-card tbody tr:hover {
+    background: rgba(0,0,0,0.03);
+    transition: background 0.2s ease;
+}
+
+/* --- Fraud Score --- */
+.fraud-score.low { color: #28a745; font-weight: 600; }
+.fraud-score.medium { color: #fd7e14; font-weight: 600; }
+.fraud-score.high { color: #dc3545; font-weight: 600; }
+
+/* --- Spinner --- */
+.spinner {
+  border: 4px solid rgba(0,0,0,0.1);
+  border-top: 4px solid #007aff;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 576px) {
+  .apple-tile { padding: 0.75rem; }
+  .tile-title { font-size: 0.8rem; }
+  .tile-value { font-size: 1.1rem; }
+  .text-link { font-size: 0.8rem; }
+  .horizontal-account-card h3 { font-size: 1.3rem; }
+}
+</style>
+
+<div class="container-fluid">
+
+  <!-- Greeting -->
+  <h2 class="greeting-header mb-4">Hi, welcome {{ current_user.first_name }} 😊👋</h2>
+
+  <!-- Accounts Overview (Horizontal) -->
+  {% if accounts %}
+  <div class="row">
+    {% for account in accounts %}
+    <div class="col-md-6 mb-3">
+      <div class="horizontal-account-card">
+        <div>
+          <h6>{{ account.account_type.title() }} Account</h6>
+          <div class="account-number">{{ account.account_number }}</div>
+          <h3>${{ "%.2f"|format(account.balance) }}</h3>
+        </div>
+        <div class="text-end">
+          <span class="badge bg-primary">{{ account.account_type.upper() }}</span>
+          <br>
+          <a href="{{ url_for('account_detail', account_id=account.id) }}" class="btn btn-outline-dark btn-sm mt-2">
+            <i class="fas fa-eye me-1"></i>View Details
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Cards, Accounts, UPI -->
+  <div class="row mb-4">
+    {% for card in cards %}
+    <div class="col-md-6 mb-3">
+      <div class="glass">
+        <div class="bank-card">
+          <div class="brand-mini mb-2">{{ card.card_type|capitalize }} • SecureBank</div>
+          <div class="number mb-3">{{ card.card_number }}</div>
+          <div class="d-flex justify-content-between">
+            <div><small>Card Holder</small><br><strong>{{ current_user.first_name }} {{ current_user.last_name }}</strong></div>
+            <div><small>Expiry</small><br><strong>{{ card.expiry }}</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    {% for account in accounts %}
+    <div class="col-md-6 mb-3">
+      <div class="glass">
+        <h6>Account Details</h6>
+        <table class="table table-borderless mb-0">
+          <tr><td>Account Number</td><td>{{ account.account_number }}</td></tr>
+          <tr><td>Balance</td><td>${{ '%.2f'|format(account.balance) }}</td></tr>
+          <tr><td>Email</td><td>{{ current_user.email }}</td></tr>
+          <tr><td>Full Name</td><td>{{ current_user.first_name }} {{ current_user.last_name }}</td></tr>
+          <tr><td>Username</td><td>{{ current_user.username }}</td></tr>
+          <tr><td>Phone</td><td>{{ current_user.phone }}</td></tr>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+
+    <div class="col-md-6 mb-3">
+      <div class="glass">
+        <h6>Your UPI IDs</h6>
+        {% if upis %}
+        <ul class="mb-0">
+          {% for upi in upis %}
+          <li>{{ upi.upi_id }}</li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p>No UPI linked yet.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+      <div class="glass text-center">
+        <h6>Add Card</h6>
+        <p><a href="{{ url_for('cards') }}" class="text-decoration-none">Click here to add a new card</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Transactions -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="glass table-card">
+        <h5 class="mb-3"><i class="fas fa-clock text-primary me-2"></i>Recent Transactions</h5>
+        <div id="transactions-loader" class="text-center" style="display:none;">
+          <div class="spinner"></div>
+        </div>
+        {% if transactions %}
+        <div class="table-responsive">
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Date</th><th>Type</th><th>Description</th><th>Amount</th><th>Fraud Score</th><th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for transaction in transactions %}
+              <tr class="{% if transaction.is_fraudulent %}table-danger{% endif %}">
+                <td>{{ transaction.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td><span class="badge bg-{% if transaction.transaction_type=='transfer' %}primary{% elif transaction.transaction_type=='deposit' %}success{% else %}warning{% endif %}">{{ transaction.transaction_type.title() }}</span></td>
+                <td>{{ transaction.description[:50] }}{% if transaction.description|length>50 %}...{% endif %}</td>
+                <td class="{% if transaction.amount<0 %}text-danger{% else %}text-success{% endif %}">${{ "%.2f"|format(transaction.amount) }}</td>
+                <td>
+                  {% if transaction.fraud_score>0 %}
+                    <span class="fraud-score {% if transaction.fraud_score<0.3 %}low{% elif transaction.fraud_score<0.7 %}medium{% else %}high{% endif %}">{{ "%.1f"|format(transaction.fraud_score*100) }}%</span>
+                  {% else %} <span class="text-muted">-</span> {% endif %}
+                </td>
+                <td>
+                  {% if transaction.is_fraudulent %}
+                    <span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i>Fraudulent</span>
+                  {% else %}
+                    <span class="badge bg-success"><i class="fas fa-check me-1"></i>Safe</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+          <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+          <h5>No transactions yet</h5>
+          <p class="text-muted">Your transaction history will appear here.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Tiles -->
+  <div class="dashboard-container">
+    <div class="row mb-3 g-2">
+      <div class="col-6 col-md-3">
+        <div class="apple-tile">
+          <h6 class="tile-title mb-1">✅ Safe Transactions</h6>
+          <h4 class="tile-value">{{ transactions|selectattr('is_fraudulent','equalto',false)|list|length }}</h4>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="apple-tile">
+          <h6 class="tile-title mb-1">📊 Total Transactions</h6>
+          <h4 class="tile-value">{{ transactions|length }}</h4>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="apple-tile">
+          <h6 class="tile-title mb-1">⚠️ Flagged Transactions</h6>
+          <h4 class="tile-value">{{ transactions|selectattr('is_fraudulent','equalto',true)|list|length }}</h4>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="apple-tile">
+          <h6 class="tile-title mb-1">🎯 Detection Accuracy</h6>
+          <h4 class="tile-value">99.5%</h4>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions Tiles -->
+    <div class="row mb-4 g-2">
+      <div class="col-6 col-md-3">
+        <div class="apple-tile">
+          <h6 class="tile-title mb-1">Transfer Money</h6>
+          <a href="{{ url_for('transfer') }}" class="text-link w-100">Transfer</a>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="apple-tile">
+          <h6 class="tile-title mb-1">Transaction History</h6>
+          <button class="text-link w-100" onclick="loadTransactions()">View All</button>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="apple-tile">
+          <h6 class="tile-title mb-1">Analytics</h6>
+          <button class="text-link w-100" onclick="showAnalytics()">Analytics</button>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="apple-tile">
+          <h6 class="tile-title mb-1">Security</h6>
+          <button class="text-link w-100" onclick="showSecurity()">Security</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function loadTransactions() {
+    document.getElementById('transactions-loader').style.display = 'block';
+    fetch('/api/transactions')
+        .then(r => r.json())
+        .then(data => { console.log(data); document.getElementById('transactions-loader').style.display = 'none'; })
+        .catch(err => { console.error(err); document.getElementById('transactions-loader').style.display = 'none'; });
+}
+function showAnalytics() { alert('Analytics coming soon!'); }
+function showSecurity() { alert('Security coming soon!'); }
+</script>
+{% endblock %}

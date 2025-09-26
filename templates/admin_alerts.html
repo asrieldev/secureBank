@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+
+{% block title %}Fraud Alerts - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="mb-3">
+            <i class="fas fa-shield-alt text-primary me-2"></i>
+            Fraud Detection Alerts
+        </h2>
+        <p class="text-muted">Monitor and manage fraud alerts in real-time</p>
+    </div>
+</div>
+
+<!-- Alert Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <h3>{{ alerts|length }}</h3>
+                <p class="mb-0">Total Alerts</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card warning">
+            <div class="card-body text-center">
+                <h3>{{ alerts|selectattr('is_resolved', 'equalto', false)|list|length }}</h3>
+                <p class="mb-0">Active Alerts</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card success">
+            <div class="card-body text-center">
+                <h3>{{ alerts|selectattr('is_resolved', 'equalto', true)|list|length }}</h3>
+                <p class="mb-0">Resolved Alerts</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stats-card danger">
+            <div class="card-body text-center">
+                <h3>{{ alerts|selectattr('severity', 'equalto', 'critical')|list|length }}</h3>
+                <p class="mb-0">Critical Alerts</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-control" id="statusFilter">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="resolved">Resolved</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Severity</label>
+                        <select class="form-control" id="severityFilter">
+                            <option value="">All Severity</option>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                            <option value="critical">Critical</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Alert Type</label>
+                        <select class="form-control" id="typeFilter">
+                            <option value="">All Types</option>
+                            <option value="High Fraud Score">High Fraud Score</option>
+                            <option value="Unusual Activity">Unusual Activity</option>
+                            <option value="Suspicious Pattern">Suspicious Pattern</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Date Range</label>
+                        <select class="form-control" id="dateFilter">
+                            <option value="">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alerts Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-bell text-primary me-2"></i>
+                    Fraud Alerts
+                </h5>
+                <div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="refreshAlerts()">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" onclick="exportAlerts()">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if alerts %}
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="alertsTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Transaction</th>
+                                    <th>Alert Type</th>
+                                    <th>Severity</th>
+                                    <th>Description</th>
+                                    <th>Created</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alert in alerts %}
+                                <tr class="alert-row" 
+                                    data-status="{% if alert.is_resolved %}resolved{% else %}active{% endif %}"
+                                    data-severity="{{ alert.severity }}"
+                                    data-type="{{ alert.alert_type }}">
+                                    <td>{{ alert.id }}</td>
+                                    <td>
+                                        <a href="#" class="text-primary" onclick="viewTransaction({{ alert.transaction_id }})">
+                                            #{{ alert.transaction_id }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ alert.alert_type }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if alert.severity == 'critical' %}danger{% elif alert.severity == 'high' %}warning{% elif alert.severity == 'medium' %}info{% else %}success{% endif %}">
+                                            {{ alert.severity.upper() }}
+                                        </span>
+                                    </td>
+                                    <td>{{ alert.description[:100] }}{% if alert.description|length > 100 %}...{% endif %}</td>
+                                    <td>{{ alert.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td>
+                                        {% if alert.is_resolved %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check me-1"></i>Resolved
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-exclamation-triangle me-1"></i>Active
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if not alert.is_resolved %}
+                                            <button class="btn btn-success btn-sm" onclick="resolveAlert({{ alert.id }})">
+                                                <i class="fas fa-check me-1"></i>Resolve
+                                            </button>
+                                        {% else %}
+                                            <span class="text-muted">Resolved by Admin</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-shield-check fa-3x text-success mb-3"></i>
+                        <h5>No fraud alerts found</h5>
+                        <p class="text-muted">Great! No suspicious activities detected at the moment.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fraud Detection Analytics -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie text-primary me-2"></i>
+                    Alert Severity Distribution
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="severityChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line text-primary me-2"></i>
+                    Alerts Over Time
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="timelineChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Filter functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const statusFilter = document.getElementById('statusFilter');
+    const severityFilter = document.getElementById('severityFilter');
+    const typeFilter = document.getElementById('typeFilter');
+    const dateFilter = document.getElementById('dateFilter');
+    
+    [statusFilter, severityFilter, typeFilter, dateFilter].forEach(filter => {
+        filter.addEventListener('change', filterAlerts);
+    });
+    
+    // Initialize charts
+    initializeCharts();
+});
+
+function filterAlerts() {
+    const status = document.getElementById('statusFilter').value;
+    const severity = document.getElementById('severityFilter').value;
+    const type = document.getElementById('typeFilter').value;
+    
+    const rows = document.querySelectorAll('.alert-row');
+    
+    rows.forEach(row => {
+        let show = true;
+        
+        if (status && row.dataset.status !== status) show = false;
+        if (severity && row.dataset.severity !== severity) show = false;
+        if (type && row.dataset.type !== type) show = false;
+        
+        row.style.display = show ? '' : 'none';
+    });
+}
+
+function resolveAlert(alertId) {
+    if (confirm('Are you sure you want to resolve this alert?')) {
+        fetch(`/admin/resolve_alert/${alertId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error resolving alert');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error resolving alert');
+        });
+    }
+}
+
+function viewTransaction(transactionId) {
+    alert(`Viewing transaction #${transactionId} - Feature coming soon!`);
+}
+
+function refreshAlerts() {
+    location.reload();
+}
+
+function exportAlerts() {
+    alert('Export feature coming soon!');
+}
+
+function initializeCharts() {
+    // Severity Distribution Chart
+    const severityCtx = document.getElementById('severityChart').getContext('2d');
+    new Chart(severityCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Low', 'Medium', 'High', 'Critical'],
+            datasets: [{
+                data: [12, 19, 8, 5],
+                backgroundColor: [
+                    '#28a745',
+                    '#17a2b8',
+                    '#ffc107',
+                    '#dc3545'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Timeline Chart
+    const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+    new Chart(timelineCtx, {
+        type: 'line',
+        data: {
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            datasets: [{
+                label: 'Alerts',
+                data: [3, 7, 5, 12, 8, 4, 6],
+                borderColor: '#3498db',
+                backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+</script>
+{% endblock %} 

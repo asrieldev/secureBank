@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Cards{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fw-bold">Your Cards</h2>
+      <p class="text-muted small">Manage and secure your payment methods</p>
+    </div>
+    <button class="btn btn-glass" data-bs-toggle="modal" data-bs-target="#addCardModal">
+      + Add Card
+    </button>
+  </div>
+
+  <!-- Cards Grid -->
+  {% if cards %}
+  <div class="row g-4">
+    {% for card in cards %}
+    <div class="col-md-4 col-sm-6">
+      <div class="card-glass flip-card" id="card{{ card.id }}">
+        <div class="flip-card-inner" id="cardInner{{ card.id }}">
+
+          <!-- Card Front -->
+          <div class="flip-card-front p-3 d-flex flex-column justify-content-between">
+            <div class="d-flex justify-content-between">
+              <div class="chip3d"></div>
+              <img src="{{ url_for('static', filename='visa.png') }}" alt="Card Logo" class="card-logo">
+            </div>
+            <h5 class="card-number mt-4">{{ card.card_number[:4] }} **** **** {{ card.card_number[-4:] }}</h5>
+            <div class="mt-2">
+             <h6 class="text-dark">{{ current_user.first_name }} {{ current_user.last_name }}</h6>
+            </div>
+          </div>
+
+          <!-- Card Back -->
+          <div class="flip-card-back p-3">
+            <div class="d-flex justify-content-between">
+              <p><strong>CVV:</strong> {{ card.cvv }}</p>
+              <p><strong>Account ID:</strong> {{ card.account_id }}</p>
+            </div>
+            <div class="d-flex justify-content-end small text-muted">SecureBank</div>
+          </div>
+
+        </div>
+
+        <!-- Inline Actions -->
+        <div class="card-actions text-center mt-2">
+          <a href="javascript:void(0)" onclick="flipCard('{{ card.id }}')">Flip</a> |
+          <form action="{{ url_for('toggle_card_view', card_id=card.id) }}" method="POST" class="d-inline">
+            <button type="submit" class="btn-link">{% if card.blocked %}Unblock{% else %}Block{% endif %}</button>
+          </form> |
+          <form action="{{ url_for('delete_card', card_id=card.id) }}" method="POST" class="d-inline">
+            <button type="submit" class="btn-link text-danger">Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info">No cards found. Add a new card to get started.</div>
+  {% endif %}
+</div>
+
+<!-- Add Card Modal -->
+<div class="modal fade" id="addCardModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content shadow-lg border-0">
+      <form method="POST" action="{{ url_for('cards') }}">
+        <div class="modal-header bg-light p-3">
+          <h5 class="modal-title fw-bold">Add New Card</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Card Number</label>
+            <input type="text" class="form-control rounded-pill shadow-sm" name="card_number" maxlength="16" placeholder="1234 5678 9012 3456" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Expiry Date</label>
+            <input type="month" class="form-control rounded-pill shadow-sm" name="expiry_date" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">CVV</label>
+            <input type="password" class="form-control rounded-pill shadow-sm" name="cvv" maxlength="3" placeholder="***" required>
+          </div>
+        </div>
+        <div class="modal-footer d-flex justify-content-between">
+          <button type="submit" class="btn btn-primary flex-grow-1">Add Card</button>
+          <button type="button" class="btn btn-secondary flex-grow-1" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Glassmorphism Card */
+.card-glass {
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(15px);
+  border-radius: 20px;
+  box-shadow: 0 4px 25px rgba(0,0,0,0.1);
+  color: #000;
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+.card-glass:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+}
+
+/* Flip Card */
+.flip-card { perspective: 1000px; }
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1);
+  transform-style: preserve-3d;
+}
+.flip-card-front, .flip-card-back {
+  backface-visibility: hidden;
+  width: 100%; height: 100%;
+  position: absolute; top: 0; left: 0;
+  border-radius: 20px;
+}
+.flip-card-front {
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(20px);
+  transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+.flip-card-back {
+  background: rgba(240,240,240,0.7);
+  backdrop-filter: blur(20px);
+  transform: rotateY(180deg);
+  transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1);
+}
+
+/* Hover Effect */
+.flip-card:hover .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+/* Elements */
+.card-number {
+  font-size: 1.4rem;
+  letter-spacing: 3px;
+  font-weight: 600;
+}
+.chip3d {
+  width: 50px; height: 35px;
+  border-radius: 8px;
+  background: linear-gradient(145deg,#d1d1d1,#a0a0a0);
+  box-shadow: inset 2px 2px 5px rgba(255,255,255,0.5),
+              inset -2px -2px 5px rgba(0,0,0,0.2);
+}
+.card-logo { width: 50px; }
+.card-actions a, .btn-link {
+  font-size: 0.9rem;
+  color: #007aff;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.card-actions a:hover, .btn-link:hover {
+  text-decoration: underline;
+}
+
+/* Glass Button */
+.btn-glass {
+  background: rgba(255,255,255,0.3);
+  backdrop-filter: blur(12px);
+  border-radius: 12px;
+  padding: 6px 15px;
+  font-weight: 500;
+  border: none;
+  transition: all 0.3s ease;
+}
+.btn-glass:hover {
+  background: rgba(255,255,255,0.5);
+}
+</style>
+
+<script>
+// Flip card function with animation effect
+function flipCard(cardId){
+  const card = document.getElementById(`cardInner${cardId}`);
+  card.style.transform =
+    card.style.transform === "rotateY(180deg)" ? "rotateY(0deg)" : "rotateY(180deg)";
+}
+</script>
+
+{% endblock %}

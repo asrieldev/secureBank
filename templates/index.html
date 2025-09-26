@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}SecureBank - Banking Transaction System with Fraud Detection{% endblock %}
+
+<style>
+    /* Ensure the body takes the full height of the viewport */
+    body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+   
+
+</style>
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-lg-10 mx-auto text-center">
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <h1 class="display-4 mb-4">
+                        <i class="fas fa-university text-primary me-3"></i>
+                        Welcome to SecureBank
+                    </h1>
+                    <p class="lead mb-4">
+                        Advanced Banking Transaction System with Real-time Fraud Detection
+                    </p>
+
+                    <!-- Features Section with Text Above Icons -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h5 class="mb-3">Fraud Detection</h5>
+                                <i class="fas fa-shield-alt fa-3x text-success mb-3"></i>
+                                <p class="text-muted">AI-powered machine learning models detect suspicious transactions in real-time</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h5 class="mb-3">Analytics</h5>
+                                <i class="fas fa-chart-line fa-3x text-primary mb-3"></i>
+                                <p class="text-muted">Comprehensive transaction analytics and fraud pattern analysis</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h5 class="mb-3">Real-time Alerts</h5>
+                                <i class="fas fa-bell fa-3x text-warning mb-3"></i>
+                                <p class="text-muted">Instant notifications for suspicious activities and fraud attempts</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- New Section about the system -->
+                    <p style="color:#000;"><i><b>SecureBank</b> brings innovation and convenience to your fingertips. Our state-of-the-art banking transaction system is designed to provide you with a seamless and secure banking experience. From instant transfers to managing your personal or business finances, we help you stay organized and in control. Your money, your future, your SecureBank.</i></p>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Account Details - {{ account.account_number }}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: #f5f5f7;
+        color: #111;
+    }
+    .navbar {
+        background: linear-gradient(90deg, #ffffff, #f2f2f5);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .navbar-brand { font-weight: 600; color: #111 !important; }
+    .btn { border-radius: 25px; font-weight: 500; }
+    .card { border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    .table th, .table td { vertical-align: middle; }
+    .fraud-score.low { color: #28a745; }
+    .fraud-score.medium { color: #ffc107; }
+    .fraud-score.high { color: #dc3545; }
+</style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg mb-4">
+    <div class="container">
+        <a class="navbar-brand" href="#">SecureBank</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</nav>
+
+<div class="container">
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-2">
+                    <i class="fas fa-wallet text-primary me-2"></i>
+                    {{ account.account_type.title() }} Account
+                </h2>
+                <p class="text-muted mb-0">Account Number: {{ account.account_number }}</p>
+            </div>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Account Summary -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card stats-card">
+            <div class="card-body text-center">
+                <h3>${{ "%.2f"|format(account.balance) }}</h3>
+                <p class="mb-0">Current Balance</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card stats-card success">
+            <div class="card-body text-center">
+                <h3>{{ transactions|length }}</h3>
+                <p class="mb-0">Total Transactions</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card stats-card warning">
+            <div class="card-body text-center">
+                <h3>{{ transactions|selectattr('is_fraudulent', 'equalto', true)|list|length }}</h3>
+                <p class="mb-0">Fraudulent Transactions</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transaction History -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-history text-primary me-2"></i>
+                    Transaction History
+                </h5>
+                <div>
+                    <button class="btn btn-outline-primary btn-sm" onclick="exportTransactions()">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if transactions %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Fraud Score</th>
+                                <th>Status</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for transaction in transactions %}
+                            <tr class="{% if transaction.is_fraudulent %}table-danger{% endif %}">
+                                <td>{{ transaction.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                <td>
+                                    <span class="badge bg-{% if transaction.transaction_type == 'transfer' %}primary{% elif transaction.transaction_type == 'deposit' %}success{% else %}warning{% endif %}">
+                                        {{ transaction.transaction_type.title() }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div>{{ transaction.description[:50] }}{% if transaction.description|length > 50 %}...{% endif %}</div>
+                                    {% if transaction.recipient_account_id %}
+                                    <small class="text-muted">To: {{ transaction.recipient_account_id }}</small>
+                                    {% endif %}
+                                </td>
+                                <td class="{% if transaction.amount < 0 %}text-danger{% else %}text-success{% endif %}">
+                                    <strong>${{ "%.2f"|format(transaction.amount) }}</strong>
+                                </td>
+                                <td>
+                                    {% if transaction.fraud_score > 0 %}
+                                    <div class="d-flex align-items-center">
+                                        <span class="fraud-score {% if transaction.fraud_score < 0.3 %}low{% elif transaction.fraud_score < 0.7 %}medium{% else %}high{% endif %} me-2">
+                                            {{ "%.1f"|format(transaction.fraud_score * 100) }}%
+                                        </span>
+                                        {% if transaction.fraud_score > 0.7 %}
+                                        <i class="fas fa-exclamation-triangle text-danger" title="High fraud risk"></i>
+                                        {% endif %}
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if transaction.is_fraudulent %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>Fraudulent
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>Safe
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-outline-info btn-sm" onclick="viewTransactionDetails({{ transaction.id }})">
+                                        <i class="fas fa-eye me-1"></i>View
+                                    </button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5>No transactions found</h5>
+                    <p class="text-muted">This account has no transaction history yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fraud Detection Analytics -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-pie text-primary me-2"></i>Transaction Risk Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="riskChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar text-primary me-2"></i>Transaction Types</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="typeChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transaction Details Modal -->
+<div class="modal fade" id="transactionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Transaction Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="transactionModalBody">
+                <!-- Transaction details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function viewTransactionDetails(transactionId) {
+    const modalBody = document.getElementById('transactionModalBody');
+    modalBody.innerHTML = `
+        <div class="text-center">
+            <i class="fas fa-spinner fa-spin fa-2x text-primary mb-3"></i>
+            <p>Loading transaction details...</p>
+        </div>
+    `;
+    const modal = new bootstrap.Modal(document.getElementById('transactionModal'));
+    modal.show();
+    setTimeout(() => {
+        modalBody.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Transaction Information</h6>
+                    <table class="table table-sm">
+                        <tr><td>Transaction ID:</td><td>#${transactionId}</td></tr>
+                        <tr><td>Type:</td><td>Transfer</td></tr>
+                        <tr><td>Amount:</td><td>$1,250.00</td></tr>
+                        <tr><td>Date:</td><td>2024-01-15 14:30:25</td></tr>
+                        <tr><td>Status:</td><td><span class="badge bg-success">Completed</span></td></tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6>Fraud Detection</h6>
+                    <table class="table table-sm">
+                        <tr><td>Fraud Score:</td><td><span class="fraud-score medium">45.2%</span></td></tr>
+                        <tr><td>Risk Level:</td><td><span class="badge bg-warning">Medium</span></td></tr>
+                        <tr><td>Location:</td><td>New York, NY</td></tr>
+                        <tr><td>IP Address:</td><td>192.168.1.100</td></tr>
+                    </table>
+                </div>
+            </div>
+        `;
+    }, 1000);
+}
+
+function exportTransactions() {
+    alert('Export feature coming soon!');
+}
+
+// Charts
+document.addEventListener('DOMContentLoaded', function() {
+    const riskCtx = document.getElementById('riskChart').getContext('2d');
+    new Chart(riskCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Safe', 'Low Risk', 'Medium Risk', 'High Risk'],
+            datasets: [{
+                data: [65, 20, 10, 5],
+                backgroundColor: ['#28a745','#17a2b8','#ffc107','#dc3545']
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    const typeCtx = document.getElementById('typeChart').getContext('2d');
+    new Chart(typeCtx, {
+        type: 'bar',
+        data: {
+            labels: ['Transfer', 'Deposit', 'Withdrawal'],
+            datasets: [{ label: 'Count', data: [12, 8, 5], backgroundColor: ['#3498db','#27ae60','#f39c12'] }]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
+});
+</script>
+</body>
+</html>

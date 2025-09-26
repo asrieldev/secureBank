@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Subscriptions{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-dark">Your Subscriptions</h2>
+        <a href="#" data-bs-toggle="modal" data-bs-target="#addSubscriptionModal" class="btn btn-glass">+ Add Subscription</a>
+    </div>
+
+    <!-- Subscriptions Dashboard -->
+    <div class="row g-4">
+        {% for subscription in subscriptions %}
+        <div class="col-md-4 col-lg-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ subscription.name }}</h5>
+                    <p class="card-text text-muted">Amount: ${{ subscription.amount }}</p>
+                    <p class="card-text text-muted">Billing: {{ subscription.billing_cycle }}</p>
+
+                    <div class="d-flex justify-content-between">
+                        <span class="badge {% if subscription.status == 'active' %}bg-success{% else %}bg-warning{% endif %}">
+                            {{ subscription.status | capitalize }}
+                        </span>
+                        <div class="d-flex gap-2">
+                            <!-- Action Buttons -->
+                            {% if subscription.status == 'active' %}
+                                <form action="{{ url_for('deactivate_subscription', subscription_id=subscription.id) }}" method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-link btn-sm text-decoration-none text-warning">Deactivate</button>
+                                </form>
+                            {% else %}
+                                <form action="{{ url_for('activate_subscription', subscription_id=subscription.id) }}" method="POST" style="display:inline;">
+                                    <button type="submit" class="btn btn-link btn-sm text-decoration-none text-success">Activate</button>
+                                </form>
+                            {% endif %}
+                            <form action="{{ url_for('delete_subscription', subscription_id=subscription.id) }}" method="POST" style="display:inline;">
+                                <button type="submit" class="btn btn-link btn-sm text-decoration-none text-danger">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Add Subscription Modal -->
+    <div class="modal fade" id="addSubscriptionModal" tabindex="-1" aria-labelledby="addSubscriptionModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-gradient p-3">
+                    <h5 class="modal-title" id="addSubscriptionModalLabel">Add Subscription</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form action="{{ url_for('subscriptions') }}" method="POST">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Subscription Name</label>
+                            <input type="text" class="form-control rounded-pill shadow-sm" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="amount" class="form-label">Amount</label>
+                            <input type="number" step="0.01" class="form-control rounded-pill shadow-sm" id="amount" name="amount" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="billing_cycle" class="form-label">Billing Cycle</label>
+                            <input type="text" class="form-control rounded-pill shadow-sm" id="billing_cycle" name="billing_cycle" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Add Subscription</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+/* Dashboard Card Style */
+.card {
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+/* Glassmorphism Button */
+.btn-glass {
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(12px);
+    border-radius: 12px;
+    padding: 6px 15px;
+    font-weight: 500;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-glass:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+/* Badge Styling */
+.badge.bg-success {
+    background-color: #28a745 !important;
+}
+
+.badge.bg-warning {
+    background-color: #ffc107 !important;
+}
+
+/* Modal Styling */
+.modal-content {
+    border-radius: 15px;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* General Form Styling */
+input.form-control {
+    border-radius: 12px;
+    padding: 10px;
+}
+
+/* Action Buttons Styling */
+.btn-sm {
+    font-size: 0.875rem;
+}
+
+/* Remove borders and colors from buttons */
+.btn-link {
+    background: none;
+    color: inherit;
+    border: none;
+    text-decoration: none;
+}
+
+/* Responsive Table for Dashboard Layout */
+@media (max-width: 767px) {
+    .card-body {
+        padding: 15px;
+    }
+}
+</style>
+{% endblock %}

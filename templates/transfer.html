@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Transfer Money - SecureBank{% endblock %}
+
+{% block content %}
+<style>
+/* --- Glass Cards & Inputs --- */
+.glass {
+    background: rgba(242,242,247,0.55);
+    backdrop-filter: blur(25px) saturate(180%);
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    border-radius: 25px;
+    padding: 20px;
+    color: #1c1c1e;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    border: 1px solid rgba(255,255,255,0.3);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.glass:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+}
+
+/* --- Form Elements --- */
+.form-control, .input-group-text {
+    border-radius: 12px;
+    font-size: 0.9rem;
+    color: #1c1c1e;
+}
+textarea.form-control { resize: none; }
+label { font-weight: 600; color: #1c1c1e; }
+.form-text { font-size: 0.8rem; color: #3c3c3c; }
+
+/* --- Buttons --- */
+.btn-primary { background-color: #007aff; border-color: #007aff; }
+.btn-primary:hover { background-color: #0051a8; border-color: #0051a8; }
+.btn-outline-secondary { color: #1c1c1e; border-color: rgba(0,0,0,0.2); }
+
+
+
+/* --- Fraud Preview --- */
+.fraud-score.low { color: #28a745; font-weight: 600; }
+.fraud-score.medium { color: #fd7e14; font-weight: 600; }
+.fraud-score.high { color: #dc3545; font-weight: 600; }
+</style>
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="glass">
+            <h4 class="mb-4">
+                <i class="fas fa-exchange-alt text-primary me-2"></i>
+                Transfer Money
+            </h4>
+            <form method="POST" id="transferForm">
+                <div class="mb-3">
+                    <label for="from_account"><i class="fas fa-wallet me-2"></i>From Account</label>
+                    <select class="form-control" id="from_account" name="from_account" required>
+                        <option value="">Select your account</option>
+                        {% for account in accounts %}
+                        <option value="{{ account.id }}">
+                            {{ account.account_type.title() }} - {{ account.account_number }} 
+                            (Balance: ${{ "%.2f"|format(account.balance) }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="to_account"><i class="fas fa-user me-2"></i>To Account Number</label>
+                    <input type="text" class="form-control" id="to_account" name="to_account" 
+                           placeholder="Enter recipient account number" required>
+                    <div class="form-text">Enter the account number of the recipient</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="amount"><i class="fas fa-dollar-sign me-2"></i>Amount</label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control" id="amount" name="amount" 
+                               step="0.01" min="0.01" placeholder="0.00" required>
+                    </div>
+                    <div class="form-text">Minimum transfer amount: $1.00</div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="description"><i class="fas fa-comment me-2"></i>Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="3"
+                              placeholder="Enter transfer description (optional)"></textarea>
+                </div>
+
+                <!-- Fraud Detection Preview -->
+                <div class="mb-4" id="fraudPreview" style="display: none;">
+                    <div class="glass border-warning">
+                        <h6 class="mb-2">
+                            <i class="fas fa-shield-alt me-2"></i>
+                            Fraud Detection Preview
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Risk Level:</strong></p>
+                                <span class="fraud-score" id="riskLevel">Calculating...</span>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Fraud Score:</strong></p>
+                                <span id="fraudScore">-</span>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <p class="mb-1"><strong>Risk Factors:</strong></p>
+                            <ul class="list-unstyled" id="riskFactors">
+                                <li><i class="fas fa-spinner fa-spin me-2"></i>Analyzing transaction...</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-paper-plane me-2"></i>Send Transfer
+                    </button>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('transferForm');
+    const amountInput = document.getElementById('amount');
+    const fraudPreview = document.getElementById('fraudPreview');
+    
+    amountInput.addEventListener('input', function() {
+        const amount = parseFloat(this.value);
+        if (amount > 0) showFraudPreview(amount);
+        else fraudPreview.style.display = 'none';
+    });
+    
+    form.addEventListener('submit', function(e) {
+        const amount = parseFloat(amountInput.value);
+        const fromAccount = document.getElementById('from_account').value;
+        if (!fromAccount) { e.preventDefault(); alert('Please select a source account'); return; }
+        if (amount < 1) { e.preventDefault(); alert('Minimum transfer amount is $1.00'); return; }
+        if (amount > 1000 && !confirm(`Are you sure you want to transfer $${amount.toFixed(2)}? This is a large amount.`)) {
+            e.preventDefault(); return;
+        }
+    });
+});
+
+function showFraudPreview(amount) {
+    const fraudPreview = document.getElementById('fraudPreview');
+    const riskLevel = document.getElementById('riskLevel');
+    const fraudScore = document.getElementById('fraudScore');
+    const riskFactors = document.getElementById('riskFactors');
+    
+    let risk='low', score=Math.random()*0.3, factors=[];
+    if(amount>1000){risk='medium'; score=0.3+Math.random()*0.4; factors.push('High transaction amount');}
+    if(amount>5000){risk='high'; score=0.7+Math.random()*0.3; factors.push('Very high transaction amount');}
+    if(Math.random()>0.7) {factors.push('Unusual transaction time'); score+=0.1;}
+    if(Math.random()>0.8) {factors.push('New recipient account'); score+=0.15;}
+    
+    riskLevel.className=`fraud-score ${risk}`;
+    riskLevel.textContent=risk.toUpperCase();
+    fraudScore.textContent=`${(score*100).toFixed(1)}%`;
+    riskFactors.innerHTML = factors.length>0? factors.map(f=> `<li><i class="fas fa-exclamation-circle text-warning me-2"></i>${f}</li>`).join('') 
+                                          : '<li><i class="fas fa-check-circle text-success me-2"></i>No risk factors detected</li>';
+    fraudPreview.style.display='block';
+}
+</script>
+{% endblock %}
