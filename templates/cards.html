@@ -32,7 +32,10 @@
             </div>
             <h5 class="card-number mt-4">{{ card.card_number[:4] }} **** **** {{ card.card_number[-4:] }}</h5>
             <div class="mt-2">
-             <h6 class="text-dark">{{ current_user.first_name }} {{ current_user.last_name }}</h6>
+              <h6 class="text-dark">{{ current_user.first_name }} {{ current_user.last_name }}</h6>
+              <small class="text-muted">
+                Expiry: {{ card.expiry_date[5:7] }}/{{ card.expiry_date[2:4] }}
+              </small>
             </div>
           </div>
 
@@ -131,13 +134,11 @@
 .flip-card-front {
   background: rgba(255,255,255,0.5);
   backdrop-filter: blur(20px);
-  transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1);
 }
 .flip-card-back {
   background: rgba(240,240,240,0.7);
   backdrop-filter: blur(20px);
   transform: rotateY(180deg);
-  transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1);
 }
 
 /* Hover Effect */
