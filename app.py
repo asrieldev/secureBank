@@ -53,6 +53,8 @@ class User(UserMixin, db.Model):
     accounts = db.relationship('Account', backref='owner', lazy=True)
     cards = db.relationship('Card', backref='owner', lazy=True)
     subscriptions = db.relationship('Subscription', backref='owner', lazy=True)
+    upis = db.relationship('UPI', backref='owner', lazy=True)
+
 
 class Account(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -104,6 +106,13 @@ class Subscription(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(20), default="active")  # active, canceled, expired # active, canceled, expired
+
+class UPI(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    upi_id = db.Column(db.String(100), unique=True, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -172,17 +181,37 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    # Fetch all user accounts
     accounts = Account.query.filter_by(user_id=current_user.id).all()
+
+    # Collect recent transactions across all accounts
     recent_transactions = []
-    
     for account in accounts:
-        transactions = Transaction.query.filter_by(account_id=account.id).order_by(Transaction.timestamp.desc()).limit(5).all()
+        transactions = Transaction.query.filter_by(account_id=account.id)\
+            .order_by(Transaction.timestamp.desc())\
+            .limit(5).all()
         recent_transactions.extend(transactions)
-    
+
+    # Sort transactions by timestamp descending and limit to 10 most recent
     recent_transactions.sort(key=lambda x: x.timestamp, reverse=True)
     recent_transactions = recent_transactions[:10]
-    
-    return render_template('dashboard.html', accounts=accounts, transactions=recent_transactions)
+
+    # Fetch all user cards
+    cards = Card.query.filter_by(user_id=current_user.id).all()
+
+    # Fetch user UPI IDs (assuming you have a UPI model)
+    try:
+        upis = current_user.upis  # If you have a relationship
+    except AttributeError:
+        upis = []  # Fallback if no UPI model
+
+    return render_template(
+        'dashboard.html',
+        accounts=accounts,
+        transactions=recent_transactions,
+        cards=cards,
+        upis=upis
+    )
 
 @app.route('/account/<int:account_id>')
 @login_required
@@ -421,6 +450,116 @@ def toggle_card_view(card_id):
         flash('Access denied', 'danger')
     return redirect(url_for('cards'))
 
+@app.route('/upis', methods=['GET', 'POST'])
+@login_required
+def upis():
+    if request.method == 'POST':
+        upi_id = request.form.get('upi_id')
+        
+        if not upi_id:
+            flash('UPI ID cannot be empty.')
+            return redirect(url_for('upis'))
+        
+        if UPI.query.filter_by(upi_id=upi_id).first():
+            flash('This UPI ID is already registered.')
+            return redirect(url_for('upis'))
+        
+        new_upi = UPI(
+            upi_id=upi_id,
+            user_id=current_user.id
+        )
+        db.session.add(new_upi)
+        db.session.commit()
+        flash('UPI ID added successfully!')
+        return redirect(url_for('upis'))
+    
+    user_upis = UPI.query.filter_by(user_id=current_user.id).all()
+    return render_template('upis.html', upis=user_upis)
+
+
+@app.route('/upi/delete/<int:upi_id>', methods=['POST'])
+@login_required
+def delete_upi(upi_id):
+    upi = UPI.query.get_or_404(upi_id)
+    if upi.user_id == current_user.id:
+        db.session.delete(upi)
+        db.session.commit()
+        flash('UPI ID deleted successfully.')
+    else:
+        flash('Access denied.')
+    return redirect(url_for('upis'))
+
+
+@app.route('/deposit', methods=['GET', 'POST'])
+@login_required
+def deposit():
+    if request.method == 'POST':
+        account_id = request.form.get('account_id')
+        amount = float(request.form.get('amount'))
+        description = request.form.get('description')
+
+        account = Account.query.get(account_id)
+        if not account or account.user_id != current_user.id:
+            flash('Invalid account')
+            return redirect(url_for('deposit'))
+
+        account.balance += amount
+
+        transaction = Transaction(
+            transaction_type='deposit',
+            amount=amount,
+            description=description or "Deposit",
+            account_id=account.id,
+            location=request.remote_addr,
+            ip_address=request.remote_addr
+        )
+
+        db.session.add(transaction)
+        db.session.commit()
+
+        flash(f'Deposit of ₹{amount:.2f} successful!')
+        return redirect(url_for('dashboard'))
+
+    accounts = Account.query.filter_by(user_id=current_user.id).all()
+    return render_template('deposit.html', accounts=accounts)
+
+
+@app.route('/withdraw', methods=['GET', 'POST'])
+@login_required
+def withdraw():
+    if request.method == 'POST':
+        account_id = request.form.get('account_id')
+        amount = float(request.form.get('amount'))
+        description = request.form.get('description')
+
+        account = Account.query.get(account_id)
+        if not account or account.user_id != current_user.id:
+            flash('Invalid account')
+            return redirect(url_for('withdraw'))
+
+        if account.balance < amount:
+            flash('Insufficient funds')
+            return redirect(url_for('withdraw'))
+
+        account.balance -= amount
+
+        transaction = Transaction(
+            transaction_type='withdrawal',
+            amount=-amount,
+            description=description or "Withdrawal",
+            account_id=account.id,
+            location=request.remote_addr,
+            ip_address=request.remote_addr
+        )
+
+        db.session.add(transaction)
+        db.session.commit()
+
+        flash(f'Withdrawal of ₹{amount:.2f} successful!')
+        return redirect(url_for('dashboard'))
+
+    accounts = Account.query.filter_by(user_id=current_user.id).all()
+    return render_template('withdraw.html', accounts=accounts)
 
 
 # Initialize the database with migrations

@@ -150,6 +150,7 @@ body, h2, h3, h4, h5, h6, p, a, td, th {
   height: 40px;
   animation: spin 1s linear infinite;
 }
+
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 /* --- Responsive Adjustments --- */
@@ -166,6 +167,7 @@ body, h2, h3, h4, h5, h6, p, a, td, th {
 
   <!-- Greeting -->
   <h2 class="greeting-header mb-4">Hi, welcome {{ current_user.first_name }} 😊👋</h2>
+
 
   <!-- Accounts Overview (Horizontal) -->
   {% if accounts %}
@@ -237,66 +239,34 @@ body, h2, h3, h4, h5, h6, p, a, td, th {
         <p>No UPI linked yet.</p>
         {% endif %}
       </div>
-    </div>
-
-    <div class="col-md-6 mb-3">
-      <div class="glass text-center">
-        <h6>Add Card</h6>
-        <p><a href="{{ url_for('cards') }}" class="text-decoration-none">Click here to add a new card</a></p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Recent Transactions -->
-  <div class="row mb-4">
+    </div><!-- Quick Actions: Add Card, Deposit, Withdraw -->
+<div class="row mb-4 g-3">
     <div class="col-12">
-      <div class="glass table-card">
-        <h5 class="mb-3"><i class="fas fa-clock text-primary me-2"></i>Recent Transactions</h5>
-        <div id="transactions-loader" class="text-center" style="display:none;">
-          <div class="spinner"></div>
-        </div>
-        {% if transactions %}
-        <div class="table-responsive">
-          <table class="table table-hover">
-            <thead>
-              <tr>
-                <th>Date</th><th>Type</th><th>Description</th><th>Amount</th><th>Fraud Score</th><th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for transaction in transactions %}
-              <tr class="{% if transaction.is_fraudulent %}table-danger{% endif %}">
-                <td>{{ transaction.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
-                <td><span class="badge bg-{% if transaction.transaction_type=='transfer' %}primary{% elif transaction.transaction_type=='deposit' %}success{% else %}warning{% endif %}">{{ transaction.transaction_type.title() }}</span></td>
-                <td>{{ transaction.description[:50] }}{% if transaction.description|length>50 %}...{% endif %}</td>
-                <td class="{% if transaction.amount<0 %}text-danger{% else %}text-success{% endif %}">${{ "%.2f"|format(transaction.amount) }}</td>
-                <td>
-                  {% if transaction.fraud_score>0 %}
-                    <span class="fraud-score {% if transaction.fraud_score<0.3 %}low{% elif transaction.fraud_score<0.7 %}medium{% else %}high{% endif %}">{{ "%.1f"|format(transaction.fraud_score*100) }}%</span>
-                  {% else %} <span class="text-muted">-</span> {% endif %}
-                </td>
-                <td>
-                  {% if transaction.is_fraudulent %}
-                    <span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i>Fraudulent</span>
-                  {% else %}
-                    <span class="badge bg-success"><i class="fas fa-check me-1"></i>Safe</span>
-                  {% endif %}
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        {% else %}
-        <div class="text-center py-4">
-          <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-          <h5>No transactions yet</h5>
-          <p class="text-muted">Your transaction history will appear here.</p>
-        </div>
-        {% endif %}
-      </div>
+        <h5 class="mb-3">Quick Actions</h5>
     </div>
-  </div>
+
+    <div class="col-md-4 mb-3">
+        <div class="glass text-center">
+            <h6>Add Card</h6>
+            <p><a href="{{ url_for('cards') }}" class="text-decoration-none">Click here to add a new card</a></p>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <div class="glass text-center">
+            <h6>Deposit Funds</h6>
+            <p><a href="{{ url_for('deposit') }}" class="text-decoration-none">Click here to deposit</a></p>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <div class="glass text-center">
+            <h6>Withdraw Funds</h6>
+            <p><a href="{{ url_for('withdraw') }}" class="text-decoration-none">Click here to withdraw</a></p>
+        </div>
+    </div>
+</div>
+
 
   <!-- Dashboard Tiles -->
   <div class="dashboard-container">

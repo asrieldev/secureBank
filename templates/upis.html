@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-3">Your UPI IDs</h2>
+
+    <!-- Add UPI Form -->
+    <div class="mb-4">
+        <form method="POST" class="d-flex gap-2">
+            <input type="text" name="upi_id" class="form-control" placeholder="Enter UPI ID" required>
+            <button type="submit" class="btn btn-primary">Add UPI</button>
+        </form>
+    </div>
+
+    <!-- List of UPI IDs -->
+    {% if upis %}
+    <ul class="list-group">
+        {% for upi in upis %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ upi.upi_id }}
+            <form method="POST" action="{{ url_for('delete_upi', upi_id=upi.id) }}" style="margin:0;">
+                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+            </form>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted">No UPI linked yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -13,11 +13,11 @@ from werkzeug.security import generate_password_hash
 # Add the current directory to Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from app import app, db, User, Account, Transaction, FraudAlert
+from app import app, db, User, Account, Transaction, FraudAlert, Card, Subscription
 from fraud_detection import FraudDetector
 
 def create_sample_data():
-    """Create sample users, accounts, and transactions"""
+    """Create sample users, accounts, cards, subscriptions, and transactions"""
     
     with app.app_context():
         # Clear existing data
@@ -25,6 +25,8 @@ def create_sample_data():
         FraudAlert.query.delete()
         Transaction.query.delete()
         Account.query.delete()
+        Card.query.delete()
+        Subscription.query.delete()
         User.query.delete()
         
         # Create admin user
@@ -65,7 +67,7 @@ def create_sample_data():
         
         db.session.commit()
         
-        # Create accounts for each user
+        # Create accounts
         print("Creating sample accounts...")
         accounts = []
         account_types = ['savings', 'checking']
@@ -83,41 +85,58 @@ def create_sample_data():
         
         db.session.commit()
         
-        # Create sample transactions
+        # Create cards
+        print("Creating sample cards...")
+        for user in [admin] + users:
+            for _ in range(2):  # two cards per user
+                card = Card(
+                    card_number=f"{random.randint(4000000000000000, 4999999999999999)}",
+                    expiry_date=f"{random.randint(1,12):02d}/{random.randint(25,30)}",
+                    cvv=f"{random.randint(100,999)}",
+                    user_id=user.id,
+                    blocked=random.choice([False, True])
+                )
+                db.session.add(card)
+        
+        db.session.commit()
+        
+        # Create subscriptions
+        print("Creating sample subscriptions...")
+        billing_cycles = ["monthly", "yearly"]
+        statuses = ["active", "canceled", "expired"]
+        
+        for user in [admin] + users:
+            for _ in range(2):  # two subscriptions per user
+                subscription = Subscription(
+                    name=random.choice(["Netflix", "Spotify", "AWS Hosting", "Adobe Suite", "Gym Membership"]),
+                    amount=random.uniform(10, 100),
+                    billing_cycle=random.choice(billing_cycles),
+                    user_id=user.id,
+                    status=random.choice(statuses)
+                )
+                db.session.add(subscription)
+        
+        db.session.commit()
+        
+        # Create transactions
         print("Creating sample transactions...")
         transaction_types = ['transfer', 'deposit', 'withdrawal']
         descriptions = [
-            'Grocery store purchase',
-            'Online shopping',
-            'Restaurant payment',
-            'Gas station',
-            'Utility bill payment',
-            'Insurance premium',
-            'Phone bill',
-            'Internet service',
-            'Movie tickets',
-            'Coffee shop',
-            'Bookstore purchase',
-            'Clothing store',
-            'Electronics purchase',
-            'Home improvement',
-            'Medical expenses'
+            'Grocery store purchase', 'Online shopping', 'Restaurant payment', 'Gas station',
+            'Utility bill payment', 'Insurance premium', 'Phone bill', 'Internet service',
+            'Movie tickets', 'Coffee shop', 'Bookstore purchase', 'Clothing store',
+            'Electronics purchase', 'Home improvement', 'Medical expenses'
         ]
         
-        # Generate transactions over the last 30 days
         end_date = datetime.utcnow()
         start_date = end_date - timedelta(days=30)
         
         fraud_detector = FraudDetector()
         
-        for _ in range(200):  # Create 200 sample transactions
-            # Random account
+        for _ in range(200):
             account = random.choice(accounts)
-            
-            # Random transaction type
             transaction_type = random.choice(transaction_types)
             
-            # Random amount based on type
             if transaction_type == 'deposit':
                 amount = random.uniform(100, 5000)
             elif transaction_type == 'withdrawal':
@@ -125,37 +144,31 @@ def create_sample_data():
             else:  # transfer
                 amount = random.choice([random.uniform(50, 2000), -random.uniform(50, 2000)])
             
-            # Random timestamp within last 30 days
             timestamp = start_date + timedelta(
                 seconds=random.randint(0, int((end_date - start_date).total_seconds()))
             )
             
-            # Random description
             description = random.choice(descriptions)
             
-            # Create transaction
             transaction = Transaction(
                 transaction_type=transaction_type,
                 amount=amount,
                 description=description,
                 account_id=account.id,
                 timestamp=timestamp,
-                location=f"{random.choice(['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix'])}",
+                location=random.choice(['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix']),
                 ip_address=f"192.168.{random.randint(1, 255)}.{random.randint(1, 255)}"
             )
             
-            # Get fraud score
             fraud_score = fraud_detector.predict_fraud(transaction)
             transaction.fraud_score = fraud_score
             transaction.is_fraudulent = fraud_score > 0.7
             
-            # Update account balance
             account.balance += amount
             
             db.session.add(transaction)
-            db.session.commit()  # Commit so transaction.id is populated
+            db.session.commit()
             
-            # Create fraud alert for high-risk transactions
             if transaction.is_fraudulent:
                 alert = FraudAlert(
                     transaction_id=transaction.id,
@@ -166,11 +179,11 @@ def create_sample_data():
                 db.session.add(alert)
                 db.session.commit()
         
-        db.session.commit()
-        
         print("Sample data created successfully!")
         print(f"Created {len(users) + 1} users")
         print(f"Created {len(accounts)} accounts")
+        print(f"Created {Card.query.count()} cards")
+        print(f"Created {Subscription.query.count()} subscriptions")
         print(f"Created 200 transactions")
         
         # Print login credentials
@@ -191,16 +204,13 @@ def main():
     print("Banking Transaction System Setup")
     print("="*40)
     
-    # Create database tables
-    print("Creating database tables...")
     with app.app_context():
         db.create_all()
     
-    # Create sample data
     create_sample_data()
     
     print("\nSetup completed successfully!")
     print("You can now run the application with: python app.py")
 
 if __name__ == '__main__':
-    main() 
+    main()
