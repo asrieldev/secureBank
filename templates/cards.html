@@ -37,7 +37,7 @@
 
             <!-- Card Front -->
             <div class="flip-card-front p-3 d-flex flex-column justify-content-between">
-              <div class="d-flex justify-content-between align-items-center">
+              <div class="card-top">
                 <div class="chip3d"></div>
                 <img src="{{ url_for('static', filename='visa.png') }}" alt="Card Logo" class="card-logo">
               </div>
@@ -46,9 +46,9 @@
                 {{ card.card_number[:4] }} **** **** {{ card.card_number[-4:] }}
               </h5>
 
-              <div class="mt-2">
-                <h6 class="text-dark">{{ current_user.first_name }} {{ current_user.last_name }}</h6>
-                <small class="text-muted">
+              <div class="card-holder mt-2">
+                <h6 class="text-dark name">{{ current_user.first_name }} {{ current_user.last_name }}</h6>
+                <small class="account-type text-muted">
                   {{ card.account.account_type|capitalize }} Account
                 </small><br>
                 <small class="text-muted">
@@ -57,7 +57,7 @@
                 <small class="text-muted">Exp: {{ card.expiry_date }}</small>
               </div>
 
-              <div class="mt-2">
+              <div class="card-status-badges mt-2">
                 {% if card.blocked %}
                   <span class="badge bg-danger card-status">Blocked</span>
                 {% else %}
@@ -68,14 +68,6 @@
                 {% endif %}
               </div>
             </div>
-<<<<<<< HEAD
-            <h5 class="card-number mt-4">{{ card.card_number[:4] }} **** **** {{ card.card_number[-4:] }}</h5>
-            <div class="mt-2">
-              <h6 class="text-dark">{{ current_user.first_name }} {{ current_user.last_name }}</h6>
-              <small class="text-muted">
-                Expiry: {{ card.expiry_date[5:7] }}/{{ card.expiry_date[2:4] }}
-              </small>
-=======
 
             <!-- Card Back -->
             <div class="flip-card-back p-3">
@@ -87,7 +79,6 @@
                 <span>Issued: {{ card.created_at.strftime('%b %Y') }}</span>
                 <span>SecureBank</span>
               </div>
->>>>>>> de4c3d9 (Update cards and subscriptions templates, add profile.html and migrations)
             </div>
 
           </div>
@@ -133,7 +124,6 @@
             <label class="form-label fw-semibold">CVV</label>
             <input type="password" class="form-control rounded-pill shadow-sm" name="cvv" maxlength="3" placeholder="***" required>
           </div>
-
           <div class="mb-3">
             <label class="form-label fw-semibold">Select Account</label>
             <select name="account_id" id="accountSelect" class="form-select rounded-pill shadow-sm" required>
@@ -156,164 +146,221 @@
 </div>
 
 <style>
-<<<<<<< HEAD
-/* Glassmorphism Card */
+.card-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
 .card-glass {
-  background: rgba(255,255,255,0.2);
-  backdrop-filter: blur(15px);
-  border-radius: 20px;
-  box-shadow: 0 4px 25px rgba(0,0,0,0.1);
-  color: #000;
-  transition: transform 0.4s ease, box-shadow 0.4s ease;
+    background: linear-gradient(135deg, #C5A100, #E2C14B);
+    border-radius: 20px;
+    color: white;
+    font-family: 'Georgia', serif;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+    display: flex;
+    flex-direction: column;
 }
+
 .card-glass:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.5);
 }
 
-/* Flip Card */
-.flip-card { perspective: 1000px; }
+.flip-card {
+    perspective: 1500px;
+    width: 100%;
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .flip-card-inner {
-  position: relative;
-  width: 100%;
-  height: 220px;
-  transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1);
-  transform-style: preserve-3d;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.9s cubic-bezier(0.4, 0.2, 0.2, 1);
+    transform-style: preserve-3d;
 }
-.flip-card-front, .flip-card-back {
-  backface-visibility: hidden;
-  width: 100%; height: 100%;
-  position: absolute; top: 0; left: 0;
-  border-radius: 20px;
+
+.flipped {
+    transform: rotateY(180deg);
 }
-.flip-card-front {
-  background: rgba(255,255,255,0.5);
-  backdrop-filter: blur(20px);
-}
+
+.flip-card-front,
 .flip-card-back {
-  background: rgba(240,240,240,0.7);
-  backdrop-filter: blur(20px);
-  transform: rotateY(180deg);
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px;
 }
 
-/* Hover Effect */
-.flip-card:hover .flip-card-inner {
-  transform: rotateY(180deg);
+.flip-card-front {
+    z-index: 2;
+    background: rgba(255, 255, 255, 0.1);
 }
 
-/* Elements */
-.card-number {
-  font-size: 1.4rem;
-  letter-spacing: 3px;
-  font-weight: 600;
+.flip-card-back {
+    transform: rotateY(180deg);
+    z-index: 1;
+    background: rgba(240, 240, 240, 0.9);
+    color: #333;
 }
+
+.card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 .chip3d {
-  width: 50px; height: 35px;
-  border-radius: 8px;
-  background: linear-gradient(145deg,#d1d1d1,#a0a0a0);
-  box-shadow: inset 2px 2px 5px rgba(255,255,255,0.5),
-              inset -2px -2px 5px rgba(0,0,0,0.2);
+    width: 50px;
+    height: 35px;
+    border-radius: 6px;
+    background: linear-gradient(145deg, #d1d1d1, #a0a0a0);
+    box-shadow: inset 2px 2px 5px rgba(255,255,255,0.5),
+                inset -2px -2px 5px rgba(0,0,0,0.2);
 }
-=======
-.card-container { display: flex; flex-direction: column; height: 100%; }
-.card-glass { background: rgba(255,255,255,0.2); backdrop-filter: blur(15px); border-radius: 20px; box-shadow: 0 4px 25px rgba(0,0,0,0.1); color: #000; transition: transform 0.4s ease, box-shadow 0.4s ease; display: flex; flex-direction: column; }
-.card-glass:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 12px 30px rgba(0,0,0,0.2); }
-.flip-card { perspective: 1000px; flex: 1; }
-.flip-card-inner { position: relative; width: 100%; height: 220px; transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; overflow: hidden; }
-.flip-card-front, .flip-card-back { backface-visibility: hidden; width: 100%; height: 100%; position: absolute; top: 0; left: 0; border-radius: 20px; padding: 1rem; }
-.flip-card-front { background: rgba(255,255,255,0.5); backdrop-filter: blur(20px); }
-.flip-card-back { background: rgba(240,240,240,0.7); backdrop-filter: blur(20px); transform: rotateY(180deg); }
-.card-number { font-size: 1.4rem; letter-spacing: 3px; font-weight: 600; }
-.chip3d { width: 50px; height: 35px; border-radius: 8px; background: linear-gradient(145deg,#d1d1d1,#a0a0a0); box-shadow: inset 2px 2px 5px rgba(255,255,255,0.5), inset -2px -2px 5px rgba(0,0,0,0.2); }
->>>>>>> de4c3d9 (Update cards and subscriptions templates, add profile.html and migrations)
-.card-logo { width: 50px; }
-.card-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.5rem; padding: 0.5rem; background: rgba(255,255,255,0.1); border-top: 1px solid rgba(255,255,255,0.3); }
-.card-actions button, .card-actions a { padding: 0.2rem 0.5rem; font-size: 0.9rem; }
-.btn-glass { background: rgba(255,255,255,0.3); backdrop-filter: blur(12px); border-radius: 12px; padding: 6px 15px; font-weight: 500; border: none; }
-.btn-glass:hover { background: rgba(255,255,255,0.5); }
-.badge { font-size: 0.8rem; }
+
+.card-logo {
+    width: 60px;
+}
+
+.card-number {
+    font-size: 1.4rem;
+    letter-spacing: 3px;
+    font-weight: bold;
+}
+
+.card-holder .name {
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.card-holder .account-type {
+    font-size: 0.85rem;
+}
+
+.card-bottom {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+}
+
+.card-status-badges {
+    margin-top: 10px;
+}
+
+.card-status-badges .badge {
+    font-size: 0.8rem;
+    padding: 5px;
+}
+
+.card-actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.btn-glass {
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(12px);
+    border-radius: 12px;
+    padding: 6px 15px;
+    font-weight: 500;
+    border: none;
+}
+
+.btn-glass:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
 </style>
 
 <script>
 function flipCard(cardId) {
-  const card = document.getElementById(`cardInner${cardId}`);
-  card.style.transform =
-    card.style.transform === "rotateY(180deg)" ? "rotateY(0deg)" : "rotateY(180deg)";
+    document.getElementById(`cardInner${cardId}`).classList.toggle("flipped");
 }
 
 function filterCards() {
-  const filter = document.getElementById('cardFilter').value;
-  const cards = document.querySelectorAll('.card-item');
-  cards.forEach(card => {
-    card.style.display = !filter || card.dataset.accountType === filter ? "block" : "none";
-  });
+    const filter = document.getElementById('cardFilter').value;
+    const cards = document.querySelectorAll('.card-item');
+    cards.forEach(card => {
+        card.style.display = !filter || card.dataset.accountType === filter ? "block" : "none";
+    });
 }
 
 document.getElementById('accountSelect')?.addEventListener('change', function() {
-  let type = this.selectedOptions[0].dataset.type;
-  let balance = parseFloat(this.selectedOptions[0].dataset.balance).toFixed(2);
-  document.getElementById('accountInfo').innerText = `Account Type: ${type}, Balance: $${balance}`;
+    let type = this.selectedOptions[0].dataset.type;
+    let balance = parseFloat(this.selectedOptions[0].dataset.balance).toFixed(2);
+    document.getElementById('accountInfo').innerText = `Account Type: ${type}, Balance: $${balance}`;
 });
 
 async function toggleCard(cardId) {
-  const url = `/toggle_card_view/${cardId}`;
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "X-Requested-With": "XMLHttpRequest",
-        "Content-Type": "application/json"
-      }
-    });
-
-    if (res.redirected) {
-      window.location.href = res.url;
-      return;
+    const url = `/toggle_card_view/${cardId}`;
+    try {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                "Content-Type": "application/json"
+            }
+        });
+        const data = await res.json();
+        if (!data.success) {
+            alert(data.error || "Error toggling card.");
+            return;
+        }
+        const cardItem = document.getElementById(`card${cardId}`).closest('.card-item');
+        const badge = cardItem.querySelector(".card-status");
+        const btn = cardItem.querySelector(`.toggle-btn[data-card-id="${cardId}"]`);
+        if (badge && btn) {
+            if (data.blocked) {
+                badge.textContent = "Blocked";
+                badge.classList.remove("bg-success");
+                badge.classList.add("bg-danger");
+                btn.textContent = "Unblock";
+            } else {
+                badge.textContent = "Active";
+                badge.classList.remove("bg-danger");
+                badge.classList.add("bg-success");
+                btn.textContent = "Block";
+            }
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Error toggling card.");
     }
-
-    const data = await res.json();
-
-    const card = document.getElementById(`card${cardId}`);
-    const btn = card.querySelector(`.toggle-btn[data-card-id="${cardId}"]`);
-    const badge = card.querySelector(".card-status");
-
-    if (badge && btn) {
-      if (badge.textContent === "Blocked") {
-        badge.textContent = "Active";
-        badge.classList.remove("bg-danger");
-        badge.classList.add("bg-success");
-        btn.textContent = "Block";
-      } else {
-        badge.textContent = "Blocked";
-        badge.classList.remove("bg-success");
-        badge.classList.add("bg-danger");
-        btn.textContent = "Unblock";
-      }
-    }
-  } catch (err) {
-    console.error(err);
-    alert("Error toggling card.");
-  }
 }
 
 async function deleteCard(cardId) {
-  if (!confirm("Are you sure you want to delete this card?")) return;
-  const url = `/card/delete/${cardId}`;
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "X-Requested-With": "XMLHttpRequest" }
-    });
-    const data = await res.json();
-    if (data.success) {
-      document.getElementById(`card${cardId}`).closest('.card-item').remove();
-    } else {
-      alert(data.error || "Error deleting card.");
+    if (!confirm("Are you sure you want to delete this card?")) return;
+    const url = `/card/delete/${cardId}`;
+    try {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "X-Requested-With": "XMLHttpRequest" }
+        });
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById(`card${cardId}`).closest('.card-item').remove();
+        } else {
+            alert(data.error || "Error deleting card.");
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Error deleting card.");
     }
-  } catch (err) {
-    console.error(err);
-    alert("Error deleting card.");
-  }
 }
 </script>
 {% endblock %}

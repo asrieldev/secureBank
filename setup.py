@@ -11,6 +11,17 @@ def main():
 
     fraud_detector = FraudDetector()
 
+    def generate_unique_upi(user, existing_upis):
+        base_upi = f"{user.first_name.lower()}.{user.last_name.lower()}"
+        suffix = random.randint(1, 999)
+        upi_id = f"{base_upi}{suffix}@upi"
+
+        while upi_id in existing_upis or UPI.query.filter_by(upi_id=upi_id).first():
+            suffix = random.randint(1, 9999)
+            upi_id = f"{base_upi}{suffix}@upi"
+
+        return upi_id
+
     with app.app_context():
         print("Clearing existing data...")
         FraudAlert.query.delete()
@@ -94,12 +105,15 @@ def main():
         db.session.commit()
 
         print("Creating UPI IDs...")
-        upis = []
+        upis = set()
+        upi_objects = []
         for user in users:
             for _ in range(random.randint(0, 2)):
-                upi_id = f"{user.first_name.lower()}.{user.last_name.lower()}{random.randint(1, 99)}@upi"
-                upis.append(UPI(upi_id=upi_id, user_id=user.id))
-        db.session.add_all(upis)
+                upi_id = generate_unique_upi(user, upis)
+                upis.add(upi_id)
+                upi_objects.append(UPI(upi_id=upi_id, user_id=user.id))
+
+        db.session.add_all(upi_objects)
         db.session.commit()
 
         print("Creating subscriptions...")
@@ -141,16 +155,13 @@ def main():
                     timestamp=datetime.utcnow() - timedelta(days=random.randint(0, 90))
                 )
 
-                # Fraud score simulation
                 fraud_score = random.uniform(0, 1)
                 transaction.fraud_score = fraud_score
                 transaction.is_fraudulent = fraud_score > 0.8
 
                 transactions.append(transaction)
-
                 account.balance += transaction.amount
 
-                # Fraud alert creation
                 if transaction.is_fraudulent:
                     db.session.add(FraudAlert(
                         transaction=transaction,
@@ -183,7 +194,6 @@ def main():
                 trans.is_fraudulent = fraud_score > 0.8
 
                 subscription_transactions.append(trans)
-
                 account.balance -= sub.amount
 
                 if trans.is_fraudulent:

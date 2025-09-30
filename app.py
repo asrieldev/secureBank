@@ -230,13 +230,20 @@ def update_profile():
     flash("Profile updated successfully!", "success")
     return redirect(url_for('profile'))
 
-
 @app.route('/profile/create_account', methods=['POST'])
 @login_required
 def create_account():
     account_number = request.form.get('account_number')
     account_type = request.form.get('account_type').strip().lower()
 
+    # Standardize account types
+    if account_type == "saving":
+        account_type = "savings"
+
+    allowed_account_types = ["savings", "checking"]
+    if account_type not in allowed_account_types:
+        flash("Invalid account type", "danger")
+        return redirect(url_for("profile"))
 
     # Prevent duplicate account numbers
     if Account.query.filter_by(account_number=account_number).first():
@@ -245,9 +252,9 @@ def create_account():
 
     # Prevent duplicate account types
     existing_account = Account.query.filter(
-    Account.user_id == current_user.id,
-    db.func.lower(Account.account_type) == account_type
-        ).first()
+        Account.user_id == current_user.id,
+        db.func.lower(Account.account_type) == account_type
+    ).first()
 
     if existing_account:
         flash(f"You already have a {account_type} account.", "warning")
@@ -261,13 +268,10 @@ def create_account():
         balance=0.0
     )
     db.session.add(new_account)
-    db.session.commit()  # ✅ Commit immediately
+    db.session.commit()
 
     flash(f"{account_type.capitalize()} account created successfully!", "success")
-    return redirect(url_for('cards'))  # Redirect directly to card addition page
-
-
-
+    return redirect(url_for('profile'))
 @app.route('/profile/delete_account/<int:account_id>', methods=['POST'])
 @login_required
 def delete_account(account_id):
@@ -282,12 +286,19 @@ def delete_account(account_id):
         flash("You cannot delete your only account.", "warning")
         return redirect(url_for('profile'))
 
+    if account.cards:
+        flash("Cannot delete account with linked cards. Remove them first.", "danger")
+        return redirect(url_for('profile'))
+
+    if account.transactions:
+        flash("Cannot delete account with existing transactions.", "danger")
+        return redirect(url_for('profile'))
+
     db.session.delete(account)
     db.session.commit()
-    flash(f"{account.account_type} account deleted.", "success")
+
+    flash(f"{account.account_type.capitalize()} account deleted successfully.", "success")
     return redirect(url_for('profile'))
-
-
 
 @app.route('/account/<int:account_id>')
 @login_required
@@ -390,7 +401,7 @@ def deposit():
         )
         db.session.add(transaction)
         db.session.commit()
-        flash(f'Deposit of ₹{amount:.2f} successful!', 'success')
+        flash(f'Deposit of ${amount:.2f} successful!', 'success')
         return redirect(url_for('dashboard'))
 
     accounts = Account.query.filter_by(user_id=current_user.id).all()
@@ -429,46 +440,6 @@ def withdraw():
 
     accounts = Account.query.filter_by(user_id=current_user.id).all()
     return render_template('withdraw.html', accounts=accounts)
-@app.route('/cards', methods=['GET', 'POST'])
-@login_required
-def cards():
-    accounts = Account.query.filter_by(user_id=current_user.id).all()  # Current user accounts
-
-    if request.method == 'POST':
-        card_number = request.form.get('card_number')
-        expiry_date = request.form.get('expiry_date')
-        cvv = request.form.get('cvv')
-        account_id = request.form.get('account_id')
-
-        account = Account.query.get(account_id)
-
-        # Ensure account exists and belongs to current user
-        if not account or account.user_id != current_user.id:
-            flash('Invalid account selected.', 'danger')
-            return redirect(url_for('cards'))
-
-        # Case‑insensitive account type check
-        allowed_account_types = ['savings', 'checking']
-        if account.account_type.strip().lower() not in [a.lower() for a in allowed_account_types]:
-            flash(f'Card can only be tied to {", ".join(allowed_account_types)} accounts.', 'danger')
-            return redirect(url_for('cards'))
-
-        # Save card to database
-        new_card = Card(
-            card_number=card_number,
-            expiry_date=expiry_date,
-            cvv=cvv,
-            user_id=current_user.id,
-            account_id=account.id
-        )
-        db.session.add(new_card)
-        db.session.commit()
-
-        flash('Card added successfully!', 'success')
-        return redirect(url_for('cards'))
-
-    user_cards = Card.query.filter_by(user_id=current_user.id).all()
-    return render_template('cards.html', cards=user_cards, accounts=accounts)
 
 from flask import jsonify
 
@@ -482,25 +453,111 @@ def delete_card(card_id):
         return jsonify({"success": True})
     else:
         return jsonify({"success": False, "error": "Access denied"}), 403
+from flask import request
 
-@app.route("/toggle_card_view/<int:card_id>", methods=["POST"])
+@app.route('/cards', methods=['GET', 'POST'])
+@login_required
+def cards():
+    accounts = Account.query.filter_by(user_id=current_user.id).all()
+
+    if request.method == 'POST':
+        card_number = request.form.get('card_number')
+        expiry_date = request.form.get('expiry_date')
+        cvv = request.form.get('cvv')
+        account_id = request.form.get('account_id')
+
+        account = Account.query.get(account_id)
+
+        if not account or account.user_id != current_user.id:
+            flash('Invalid account selected.', 'danger')
+            return redirect(url_for('cards'))
+
+        allowed_account_types = ['savings', 'checking']
+        if account.account_type.strip().lower() not in [a.lower() for a in allowed_account_types]:
+            flash(f'Card can only be tied to {", ".join(allowed_account_types)} accounts.', 'danger')
+            return redirect(url_for('cards'))
+
+        new_card = Card(
+            card_number=card_number,
+            expiry_date=expiry_date,
+            cvv=cvv,
+            user_id=current_user.id,
+            account_id=account.id
+        )
+        db.session.add(new_card)
+        db.session.commit()
+
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({
+                "success": True,
+                "card": {
+                    "id": new_card.id,
+                    "card_number": new_card.card_number,
+                    "expiry_date": new_card.expiry_date,
+                    "cvv": new_card.cvv,
+                    "account_id": new_card.account.id,
+                    "account_number": new_card.account.account_number,
+                    "account_type": new_card.account.account_type,
+                    "balance": new_card.account.balance,
+                    "first_name": current_user.first_name,
+                    "last_name": current_user.last_name,
+                    "blocked": new_card.blocked,
+                    "created_at": new_card.created_at.strftime("%b %Y"),
+                    "transactions": [
+                        {"is_fraudulent": t.is_fraudulent} for t in new_card.transactions
+                    ]
+                }
+            })
+
+        flash('Card added successfully!', 'success')
+        return redirect(url_for('cards'))
+
+    user_cards = Card.query.filter_by(user_id=current_user.id).all()
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            "cards": [
+                {
+                    "id": card.id,
+                    "card_number": card.card_number,
+                    "expiry_date": card.expiry_date,
+                    "cvv": card.cvv,
+                    "account_id": card.account.id,
+                    "account_number": card.account.account_number,
+                    "account_type": card.account.account_type,
+                    "balance": card.account.balance,
+                    "first_name": current_user.first_name,
+                    "last_name": current_user.last_name,
+                    "blocked": card.blocked,
+                    "created_at": card.created_at.strftime("%b %Y"),
+                    "transactions": [
+                        {"is_fraudulent": t.is_fraudulent} for t in card.transactions
+                    ]
+                }
+                for card in user_cards
+            ]
+        })
+
+    return render_template('cards.html', cards=user_cards, accounts=accounts)
+
+@app.route('/toggle_card_view/<int:card_id>', methods=['POST'])
 @login_required
 def toggle_card_view(card_id):
     card = Card.query.get_or_404(card_id)
 
     # Ensure the card belongs to the logged-in user
-    if card.account.user_id != current_user.id:
-        flash("Unauthorized action.", "danger")
-        return redirect(url_for("cards"))
+    if card.user_id != current_user.id:
+        return jsonify({"success": False, "error": "Access denied"}), 403
 
-    # Toggle the blocked status
+    # Toggle block status
     card.blocked = not card.blocked
     db.session.commit()
 
-    status = "blocked" if card.blocked else "unblocked"
-    flash(f"Card {status} successfully.", "success")
+    return jsonify({
+        "success": True,
+        "blocked": card.blocked
+    })
 
-    return redirect(url_for("cards"))
 
 
 @app.route('/subscriptions', methods=['GET', 'POST'])
