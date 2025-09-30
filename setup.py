@@ -1,36 +1,30 @@
-#!/usr/bin/env python3
-"""
-Setup script for Banking Transaction System with Fraud Detection
-Creates sample data for testing and demonstration
-"""
-
-import os
-import sys
-from datetime import datetime, timedelta
 import random
+from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash
+from faker import Faker
 
-# Add the current directory to Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+fake = Faker()
 
-from app import app, db, User, Account, Transaction, FraudAlert, Card, Subscription
-from fraud_detection import FraudDetector
 
-def create_sample_data():
-    """Create sample users, accounts, cards, subscriptions, and transactions"""
-    
+def main():
+    from app import app, db, User, Account, Transaction, FraudAlert, Card, Subscription, UPI, FraudDetector
+
+    fraud_detector = FraudDetector()
+
     with app.app_context():
-        # Clear existing data
         print("Clearing existing data...")
         FraudAlert.query.delete()
         Transaction.query.delete()
         Account.query.delete()
         Card.query.delete()
         Subscription.query.delete()
+        UPI.query.delete()
         User.query.delete()
-        
-        # Create admin user
-        print("Creating admin user...")
+        db.session.commit()
+
+        print("Creating users...")
+        users = []
+
         admin = User(
             username='admin',
             email='admin@securebank.com',
@@ -40,177 +34,232 @@ def create_sample_data():
             phone='555-0001',
             is_admin=True
         )
-        db.session.add(admin)
-        
-        # Create regular users
-        print("Creating sample users...")
-        users = []
-        user_data = [
-            ('john_doe', 'john@example.com', 'John', 'Doe', '555-0002'),
-            ('jane_smith', 'jane@example.com', 'Jane', 'Smith', '555-0003'),
-            ('bob_wilson', 'bob@example.com', 'Bob', 'Wilson', '555-0004'),
-            ('alice_brown', 'alice@example.com', 'Alice', 'Brown', '555-0005'),
-            ('charlie_davis', 'charlie@example.com', 'Charlie', 'Davis', '555-0006')
-        ]
-        
-        for username, email, first_name, last_name, phone in user_data:
-            user = User(
+        users.append(admin)
+
+        for _ in range(50):
+            first_name = fake.first_name()
+            last_name = fake.last_name()
+            username = f"{first_name.lower()}{random.randint(100, 999)}"
+            email = f"{username}@example.com"
+            password_hash = generate_password_hash("password123")
+            phone = fake.phone_number()
+            users.append(User(
                 username=username,
                 email=email,
-                password_hash=generate_password_hash('password123'),
+                password_hash=password_hash,
                 first_name=first_name,
                 last_name=last_name,
                 phone=phone
-            )
-            users.append(user)
-            db.session.add(user)
-        
+            ))
+
+        db.session.add_all(users)
         db.session.commit()
-        
-        # Create accounts
-        print("Creating sample accounts...")
+
+        print("Creating accounts...")
         accounts = []
-        account_types = ['savings', 'checking']
-        
-        for user in [admin] + users:
-            for account_type in account_types:
-                account = Account(
-                    account_number=f"{random.randint(10000000, 99999999)}",
-                    account_type=account_type,
-                    balance=random.uniform(1000, 50000),
-                    user_id=user.id
-                )
-                accounts.append(account)
-                db.session.add(account)
-        
-        db.session.commit()
-        
-        # Create cards
-        print("Creating sample cards...")
-        for user in [admin] + users:
-            for _ in range(2):  # two cards per user
-                card = Card(
-                    card_number=f"{random.randint(4000000000000000, 4999999999999999)}",
-                    expiry_date=f"{random.randint(1,12):02d}/{random.randint(25,30)}",
-                    cvv=f"{random.randint(100,999)}",
-                    user_id=user.id,
-                    blocked=random.choice([False, True])
-                )
-                db.session.add(card)
-        
-        db.session.commit()
-        
-        # Create subscriptions
-        print("Creating sample subscriptions...")
-        billing_cycles = ["monthly", "yearly"]
-        statuses = ["active", "canceled", "expired"]
-        
-        for user in [admin] + users:
-            for _ in range(2):  # two subscriptions per user
-                subscription = Subscription(
-                    name=random.choice(["Netflix", "Spotify", "AWS Hosting", "Adobe Suite", "Gym Membership"]),
-                    amount=random.uniform(10, 100),
-                    billing_cycle=random.choice(billing_cycles),
-                    user_id=user.id,
-                    status=random.choice(statuses)
-                )
-                db.session.add(subscription)
-        
-        db.session.commit()
-        
-        # Create transactions
-        print("Creating sample transactions...")
-        transaction_types = ['transfer', 'deposit', 'withdrawal']
-        descriptions = [
-            'Grocery store purchase', 'Online shopping', 'Restaurant payment', 'Gas station',
-            'Utility bill payment', 'Insurance premium', 'Phone bill', 'Internet service',
-            'Movie tickets', 'Coffee shop', 'Bookstore purchase', 'Clothing store',
-            'Electronics purchase', 'Home improvement', 'Medical expenses'
-        ]
-        
-        end_date = datetime.utcnow()
-        start_date = end_date - timedelta(days=30)
-        
-        fraud_detector = FraudDetector()
-        
-        for _ in range(200):
-            account = random.choice(accounts)
-            transaction_type = random.choice(transaction_types)
-            
-            if transaction_type == 'deposit':
-                amount = random.uniform(100, 5000)
-            elif transaction_type == 'withdrawal':
-                amount = -random.uniform(50, 2000)
-            else:  # transfer
-                amount = random.choice([random.uniform(50, 2000), -random.uniform(50, 2000)])
-            
-            timestamp = start_date + timedelta(
-                seconds=random.randint(0, int((end_date - start_date).total_seconds()))
-            )
-            
-            description = random.choice(descriptions)
-            
-            transaction = Transaction(
-                transaction_type=transaction_type,
-                amount=amount,
-                description=description,
-                account_id=account.id,
-                timestamp=timestamp,
-                location=random.choice(['New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix']),
-                ip_address=f"192.168.{random.randint(1, 255)}.{random.randint(1, 255)}"
-            )
-            
-            fraud_score = fraud_detector.predict_fraud(transaction)
-            transaction.fraud_score = fraud_score
-            transaction.is_fraudulent = fraud_score > 0.7
-            
-            account.balance += amount
-            
-            db.session.add(transaction)
-            db.session.commit()
-            
-            if transaction.is_fraudulent:
-                alert = FraudAlert(
-                    transaction_id=transaction.id,
-                    alert_type='High Fraud Score',
-                    severity='high' if fraud_score > 0.8 else 'medium',
-                    description=f'Transaction flagged with fraud score: {fraud_score:.3f}'
-                )
-                db.session.add(alert)
-                db.session.commit()
-        
-        print("Sample data created successfully!")
-        print(f"Created {len(users) + 1} users")
-        print(f"Created {len(accounts)} accounts")
-        print(f"Created {Card.query.count()} cards")
-        print(f"Created {Subscription.query.count()} subscriptions")
-        print(f"Created 200 transactions")
-        
-        # Print login credentials
-        print("\n" + "="*50)
-        print("LOGIN CREDENTIALS")
-        print("="*50)
-        print("Admin User:")
-        print("  Username: admin")
-        print("  Password: admin123")
-        print("\nRegular Users:")
         for user in users:
-            print(f"  Username: {user.username}")
-            print(f"  Password: password123")
-        print("="*50)
+            savings = Account(
+                account_number=f"ACC{random.randint(10000, 99999)}",
+                account_type="savings",
+                balance=round(random.uniform(1000, 50000), 2),
+                user_id=user.id
+            )
+            checking = Account(
+                account_number=f"ACC{random.randint(10000, 99999)}",
+                account_type="checking",
+                balance=round(random.uniform(1000, 50000), 2),
+                user_id=user.id
+            )
+            accounts.extend([savings, checking])
 
-def main():
-    """Main setup function"""
-    print("Banking Transaction System Setup")
-    print("="*40)
-    
-    with app.app_context():
-        db.create_all()
-    
-    create_sample_data()
-    
-    print("\nSetup completed successfully!")
-    print("You can now run the application with: python app.py")
+        db.session.add_all(accounts)
+        db.session.commit()
 
-if __name__ == '__main__':
+        print("Creating cards...")
+        cards = []
+        for account in accounts:
+            if random.random() < 0.7:
+                card_number = "".join(str(random.randint(0, 9)) for _ in range(16))
+                expiry_date = f"{random.randint(1, 12):02d}/{random.randint(24, 30)}"
+                cvv = f"{random.randint(100, 999)}"
+                cards.append(Card(
+                    card_number=card_number,
+                    expiry_date=expiry_date,
+                    cvv=cvv,
+                    user_id=account.user_id,
+                    account_id=account.id
+                ))
+
+        db.session.add_all(cards)
+        db.session.commit()
+
+        print("Creating UPI IDs...")
+        upis = []
+        for user in users:
+            for _ in range(random.randint(0, 2)):
+                upi_id = f"{user.first_name.lower()}.{user.last_name.lower()}{random.randint(1, 99)}@upi"
+                upis.append(UPI(upi_id=upi_id, user_id=user.id))
+        db.session.add_all(upis)
+        db.session.commit()
+
+        print("Creating subscriptions...")
+        subscriptions = []
+        subscription_names = ["Netflix", "Spotify", "Amazon Prime", "YouTube Premium", "Disney+"]
+        for user in users:
+            for _ in range(random.randint(0, 2)):
+                account = random.choice([a for a in accounts if a.user_id == user.id])
+                name = random.choice(subscription_names)
+                amount = round(random.uniform(50, 500), 2)
+                billing_cycle = random.choice(["monthly", "yearly"])
+                subscriptions.append(Subscription(
+                    name=name,
+                    amount=amount,
+                    billing_cycle=billing_cycle,
+                    user_id=user.id,
+                    account_id=account.id
+                ))
+
+        db.session.add_all(subscriptions)
+        db.session.commit()
+
+        print("Creating transactions...")
+        transactions = []
+        for account in accounts:
+            for _ in range(random.randint(5, 15)):
+                transaction_type = random.choice(['deposit', 'withdrawal'])
+                amount = round(random.uniform(10, 2000), 2)
+                if transaction_type == 'withdrawal' and account.balance < amount:
+                    amount = round(account.balance * 0.5, 2)
+
+                transaction = Transaction(
+                    transaction_type=transaction_type,
+                    amount=amount if transaction_type == 'deposit' else -amount,
+                    description=fake.sentence(nb_words=6),
+                    account_id=account.id,
+                    location=fake.city(),
+                    ip_address=fake.ipv4(),
+                    timestamp=datetime.utcnow() - timedelta(days=random.randint(0, 90))
+                )
+
+                # Fraud score simulation
+                fraud_score = random.uniform(0, 1)
+                transaction.fraud_score = fraud_score
+                transaction.is_fraudulent = fraud_score > 0.8
+
+                transactions.append(transaction)
+
+                account.balance += transaction.amount
+
+                # Fraud alert creation
+                if transaction.is_fraudulent:
+                    db.session.add(FraudAlert(
+                        transaction=transaction,
+                        alert_type="Suspicious Transaction",
+                        severity="high",
+                        description=f"Automatically generated fraud alert (score: {fraud_score:.2f})"
+                    ))
+
+        db.session.add_all(transactions)
+        db.session.commit()
+
+        print("Creating subscription transactions...")
+        subscription_transactions = []
+        for sub in subscriptions:
+            account = Account.query.get(sub.account_id)
+            if account.balance >= sub.amount:
+                trans = Transaction(
+                    transaction_type="subscription",
+                    amount=-sub.amount,
+                    description=f"Subscription payment: {sub.name}",
+                    account_id=account.id,
+                    subscription_id=sub.id,
+                    location=fake.city(),
+                    ip_address=fake.ipv4(),
+                    timestamp=datetime.utcnow() - timedelta(days=random.randint(0, 30))
+                )
+
+                fraud_score = random.uniform(0, 1)
+                trans.fraud_score = fraud_score
+                trans.is_fraudulent = fraud_score > 0.8
+
+                subscription_transactions.append(trans)
+
+                account.balance -= sub.amount
+
+                if trans.is_fraudulent:
+                    db.session.add(FraudAlert(
+                        transaction=trans,
+                        alert_type="Suspicious Subscription",
+                        severity="high",
+                        description=f"Automatically generated fraud alert (score: {fraud_score:.2f})"
+                    ))
+
+        db.session.add_all(subscription_transactions)
+        db.session.commit()
+
+        print("Creating inter-user transfers...")
+        transfer_transactions = []
+        for _ in range(100):
+            sender_account = random.choice(accounts)
+            receiver_account = random.choice([a for a in accounts if a.user_id != sender_account.user_id])
+
+            if sender_account.balance < 50:
+                continue
+
+            amount = round(random.uniform(20, min(500, sender_account.balance)), 2)
+
+            withdrawal = Transaction(
+                transaction_type='transfer',
+                amount=-amount,
+                description=f"Transfer to {receiver_account.account_number}",
+                account_id=sender_account.id,
+                recipient_account_id=receiver_account.id,
+                location=fake.city(),
+                ip_address=fake.ipv4(),
+                timestamp=datetime.utcnow() - timedelta(days=random.randint(0, 30))
+            )
+            deposit = Transaction(
+                transaction_type='transfer',
+                amount=amount,
+                description=f"Transfer from {sender_account.account_number}",
+                account_id=receiver_account.id,
+                recipient_account_id=sender_account.id,
+                location=fake.city(),
+                ip_address=fake.ipv4(),
+                timestamp=datetime.utcnow() - timedelta(days=random.randint(0, 30))
+            )
+
+            fraud_score = random.uniform(0, 1)
+            withdrawal.fraud_score = fraud_score
+            withdrawal.is_fraudulent = fraud_score > 0.8
+            deposit.fraud_score = fraud_score
+            deposit.is_fraudulent = fraud_score > 0.8
+
+            transfer_transactions.extend([withdrawal, deposit])
+
+            sender_account.balance -= amount
+            receiver_account.balance += amount
+
+            if withdrawal.is_fraudulent:
+                db.session.add(FraudAlert(
+                    transaction=withdrawal,
+                    alert_type="Suspicious Transfer",
+                    severity="high",
+                    description=f"Automatically generated fraud alert (score: {fraud_score:.2f})"
+                ))
+
+        db.session.add_all(transfer_transactions)
+        db.session.commit()
+
+        print("Setup complete! ✅")
+        print(f"Created: {len(users)} users, {len(accounts)} accounts, {len(cards)} cards, {len(upis)} UPIs, {len(subscriptions)} subscriptions, {len(transactions) + len(subscription_transactions) + len(transfer_transactions)} transactions.")
+
+        print("\nSample login credentials:")
+        print(f"Admin -> username: admin | password: admin123")
+        if len(users) > 1:
+            sample_user = users[1]
+            print(f"User -> username: {sample_user.username} | password: password123")
+
+
+if __name__ == "__main__":
     main()
