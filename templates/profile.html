@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Profile{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Edit Profile</h2>
+
+    <!-- Profile Form -->
+    <form action="{{ url_for('update_profile') }}" method="POST" class="needs-validation" novalidate>
+        <div class="mb-3">
+            <label for="first_name" class="form-label">First Name</label>
+            <input type="text" class="form-control" id="first_name" name="first_name"
+                   value="{{ current_user.first_name }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="last_name" class="form-label">Last Name</label>
+            <input type="text" class="form-control" id="last_name" name="last_name"
+                   value="{{ current_user.last_name }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="phone" class="form-label">Phone Number</label>
+            <input type="text" class="form-control" id="phone" name="phone"
+                   value="{{ current_user.phone }}">
+        </div>
+
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" name="email"
+                   value="{{ current_user.email }}" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Update Profile</button>
+    </form>
+
+    <hr>
+
+    <!-- Accounts Section -->
+    <h3>Your Accounts</h3>
+
+    {% if accounts %}
+        <ul class="list-group mb-3">
+            {% for acc in accounts %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>{{ acc.account_type|capitalize }}</strong><br>
+                    Account #: {{ acc.account_number }}<br>
+                    Balance: ${{ "%.2f"|format(acc.balance) }}
+                </div>
+                <form action="{{ url_for('delete_account', account_id=acc.id) }}" method="POST" style="margin:0;">
+                    <button type="submit" class="btn btn-sm btn-danger"
+                        {% if accounts|length <= 1 %}disabled{% endif %}>
+                        Delete
+                    </button>
+                </form>
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>You don’t have any accounts yet.</p>
+    {% endif %}
+
+    <!-- Create New Account -->
+    <h4>Add New Account</h4>
+    <form action="{{ url_for('create_account') }}" method="POST">
+        <div class="mb-3">
+            <label for="account_number" class="form-label">Account Number</label>
+            <input type="text" class="form-control" id="account_number" name="account_number" required>
+        </div>
+        <div class="mb-3">
+            <label for="account_type" class="form-label">Account Type</label>
+            <select class="form-control" id="account_type" name="account_type" required>
+                <option value="">Select Account Type</option>
+                {% if not accounts or not accounts|selectattr("account_type", "equalto", "saving")|list %}
+                    <option value="saving">Saving</option>
+                {% endif %}
+                {% if not accounts or not accounts|selectattr("account_type", "equalto", "checking")|list %}
+                    <option value="checking">Checking</option>
+                {% endif %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-success">Create Account</button>
+    </form>
+</div>
+{% endblock %}

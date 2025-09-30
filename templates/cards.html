@@ -6,59 +6,101 @@
 <div class="container py-4">
 
   <!-- Header -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
     <div>
       <h2 class="fw-bold">Your Cards</h2>
       <p class="text-muted small">Manage and secure your payment methods</p>
     </div>
-    <button class="btn btn-glass" data-bs-toggle="modal" data-bs-target="#addCardModal">
+    <button class="btn btn-glass mb-2" data-bs-toggle="modal" data-bs-target="#addCardModal">
       + Add Card
     </button>
   </div>
 
+  <!-- Filter -->
+  <div class="mb-4">
+    <label for="cardFilter" class="form-label small">Filter by Account Type:</label>
+    <select id="cardFilter" class="form-select w-auto" onchange="filterCards()">
+      <option value="">All</option>
+      <option value="checking">Checking</option>
+      <option value="savings">Savings</option>
+    </select>
+  </div>
+
   <!-- Cards Grid -->
   {% if cards %}
-  <div class="row g-4">
+  <div class="row g-4" id="cardsGrid">
     {% for card in cards %}
-    <div class="col-md-4 col-sm-6">
-      <div class="card-glass flip-card" id="card{{ card.id }}">
-        <div class="flip-card-inner" id="cardInner{{ card.id }}">
+    <div class="col-md-4 col-sm-6 col-12 card-item" data-account-type="{{ card.account.account_type }}">
+      <div class="card-container">
+        <div class="card-glass flip-card" id="card{{ card.id }}">
+          <div class="flip-card-inner" id="cardInner{{ card.id }}">
 
-          <!-- Card Front -->
-          <div class="flip-card-front p-3 d-flex flex-column justify-content-between">
-            <div class="d-flex justify-content-between">
-              <div class="chip3d"></div>
-              <img src="{{ url_for('static', filename='visa.png') }}" alt="Card Logo" class="card-logo">
+            <!-- Card Front -->
+            <div class="flip-card-front p-3 d-flex flex-column justify-content-between">
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="chip3d"></div>
+                <img src="{{ url_for('static', filename='visa.png') }}" alt="Card Logo" class="card-logo">
+              </div>
+
+              <h5 class="card-number mt-4">
+                {{ card.card_number[:4] }} **** **** {{ card.card_number[-4:] }}
+              </h5>
+
+              <div class="mt-2">
+                <h6 class="text-dark">{{ current_user.first_name }} {{ current_user.last_name }}</h6>
+                <small class="text-muted">
+                  {{ card.account.account_type|capitalize }} Account
+                </small><br>
+                <small class="text-muted">
+                  Balance: ${{ "%.2f"|format(card.account.balance) }}
+                </small><br>
+                <small class="text-muted">Exp: {{ card.expiry_date }}</small>
+              </div>
+
+              <div class="mt-2">
+                {% if card.blocked %}
+                  <span class="badge bg-danger card-status">Blocked</span>
+                {% else %}
+                  <span class="badge bg-success card-status">Active</span>
+                {% endif %}
+                {% if card.transactions|selectattr('is_fraudulent')|list %}
+                  <span class="badge bg-warning text-dark">Fraud Alert</span>
+                {% endif %}
+              </div>
             </div>
+<<<<<<< HEAD
             <h5 class="card-number mt-4">{{ card.card_number[:4] }} **** **** {{ card.card_number[-4:] }}</h5>
             <div class="mt-2">
               <h6 class="text-dark">{{ current_user.first_name }} {{ current_user.last_name }}</h6>
               <small class="text-muted">
                 Expiry: {{ card.expiry_date[5:7] }}/{{ card.expiry_date[2:4] }}
               </small>
-            </div>
-          </div>
+=======
 
-          <!-- Card Back -->
-          <div class="flip-card-back p-3">
-            <div class="d-flex justify-content-between">
-              <p><strong>CVV:</strong> {{ card.cvv }}</p>
-              <p><strong>Account ID:</strong> {{ card.account_id }}</p>
+            <!-- Card Back -->
+            <div class="flip-card-back p-3">
+              <div class="d-flex justify-content-between">
+                <p><strong>CVV:</strong> {{ card.cvv }}</p>
+                <p><strong>Account ID:</strong> {{ card.account_id }}</p>
+              </div>
+              <div class="d-flex justify-content-between small text-muted">
+                <span>Issued: {{ card.created_at.strftime('%b %Y') }}</span>
+                <span>SecureBank</span>
+              </div>
+>>>>>>> de4c3d9 (Update cards and subscriptions templates, add profile.html and migrations)
             </div>
-            <div class="d-flex justify-content-end small text-muted">SecureBank</div>
-          </div>
 
+          </div>
         </div>
 
-        <!-- Inline Actions -->
-        <div class="card-actions text-center mt-2">
-          <a href="javascript:void(0)" onclick="flipCard('{{ card.id }}')">Flip</a> |
-          <form action="{{ url_for('toggle_card_view', card_id=card.id) }}" method="POST" class="d-inline">
-            <button type="submit" class="btn-link">{% if card.blocked %}Unblock{% else %}Block{% endif %}</button>
-          </form> |
-          <form action="{{ url_for('delete_card', card_id=card.id) }}" method="POST" class="d-inline">
-            <button type="submit" class="btn-link text-danger">Delete</button>
-          </form>
+        <!-- Buttons -->
+        <div class="card-actions">
+          <button class="btn btn-link" onclick="flipCard('{{ card.id }}')">Flip</button>
+          <a href="{{ url_for('account_detail', account_id=card.account.id) }}" class="btn btn-link">View Account</a>
+          <button class="btn btn-link toggle-btn" data-card-id="{{ card.id }}" onclick="toggleCard('{{ card.id }}')">
+            {% if card.blocked %}Unblock{% else %}Block{% endif %}
+          </button>
+          <button class="btn btn-link text-danger" onclick="deleteCard('{{ card.id }}')">Delete</button>
         </div>
       </div>
     </div>
@@ -91,6 +133,18 @@
             <label class="form-label fw-semibold">CVV</label>
             <input type="password" class="form-control rounded-pill shadow-sm" name="cvv" maxlength="3" placeholder="***" required>
           </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Select Account</label>
+            <select name="account_id" id="accountSelect" class="form-select rounded-pill shadow-sm" required>
+              {% for account in accounts %}
+              <option value="{{ account.id }}" data-type="{{ account.account_type }}" data-balance="{{ "%.2f"|format(account.balance) }}">
+                {{ account.account_number }} — {{ account.account_type|capitalize }} — ${{ "%.2f"|format(account.balance) }}
+              </option>
+              {% endfor %}
+            </select>
+            <p id="accountInfo" class="small text-muted mt-2"></p>
+          </div>
         </div>
         <div class="modal-footer d-flex justify-content-between">
           <button type="submit" class="btn btn-primary flex-grow-1">Add Card</button>
@@ -102,6 +156,7 @@
 </div>
 
 <style>
+<<<<<<< HEAD
 /* Glassmorphism Card */
 .card-glass {
   background: rgba(255,255,255,0.2);
@@ -159,41 +214,106 @@
   box-shadow: inset 2px 2px 5px rgba(255,255,255,0.5),
               inset -2px -2px 5px rgba(0,0,0,0.2);
 }
+=======
+.card-container { display: flex; flex-direction: column; height: 100%; }
+.card-glass { background: rgba(255,255,255,0.2); backdrop-filter: blur(15px); border-radius: 20px; box-shadow: 0 4px 25px rgba(0,0,0,0.1); color: #000; transition: transform 0.4s ease, box-shadow 0.4s ease; display: flex; flex-direction: column; }
+.card-glass:hover { transform: translateY(-5px) scale(1.02); box-shadow: 0 12px 30px rgba(0,0,0,0.2); }
+.flip-card { perspective: 1000px; flex: 1; }
+.flip-card-inner { position: relative; width: 100%; height: 220px; transition: transform 0.8s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; overflow: hidden; }
+.flip-card-front, .flip-card-back { backface-visibility: hidden; width: 100%; height: 100%; position: absolute; top: 0; left: 0; border-radius: 20px; padding: 1rem; }
+.flip-card-front { background: rgba(255,255,255,0.5); backdrop-filter: blur(20px); }
+.flip-card-back { background: rgba(240,240,240,0.7); backdrop-filter: blur(20px); transform: rotateY(180deg); }
+.card-number { font-size: 1.4rem; letter-spacing: 3px; font-weight: 600; }
+.chip3d { width: 50px; height: 35px; border-radius: 8px; background: linear-gradient(145deg,#d1d1d1,#a0a0a0); box-shadow: inset 2px 2px 5px rgba(255,255,255,0.5), inset -2px -2px 5px rgba(0,0,0,0.2); }
+>>>>>>> de4c3d9 (Update cards and subscriptions templates, add profile.html and migrations)
 .card-logo { width: 50px; }
-.card-actions a, .btn-link {
-  font-size: 0.9rem;
-  color: #007aff;
-  text-decoration: none;
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-.card-actions a:hover, .btn-link:hover {
-  text-decoration: underline;
-}
-
-/* Glass Button */
-.btn-glass {
-  background: rgba(255,255,255,0.3);
-  backdrop-filter: blur(12px);
-  border-radius: 12px;
-  padding: 6px 15px;
-  font-weight: 500;
-  border: none;
-  transition: all 0.3s ease;
-}
-.btn-glass:hover {
-  background: rgba(255,255,255,0.5);
-}
+.card-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.5rem; padding: 0.5rem; background: rgba(255,255,255,0.1); border-top: 1px solid rgba(255,255,255,0.3); }
+.card-actions button, .card-actions a { padding: 0.2rem 0.5rem; font-size: 0.9rem; }
+.btn-glass { background: rgba(255,255,255,0.3); backdrop-filter: blur(12px); border-radius: 12px; padding: 6px 15px; font-weight: 500; border: none; }
+.btn-glass:hover { background: rgba(255,255,255,0.5); }
+.badge { font-size: 0.8rem; }
 </style>
 
 <script>
-// Flip card function with animation effect
-function flipCard(cardId){
+function flipCard(cardId) {
   const card = document.getElementById(`cardInner${cardId}`);
   card.style.transform =
     card.style.transform === "rotateY(180deg)" ? "rotateY(0deg)" : "rotateY(180deg)";
 }
-</script>
 
+function filterCards() {
+  const filter = document.getElementById('cardFilter').value;
+  const cards = document.querySelectorAll('.card-item');
+  cards.forEach(card => {
+    card.style.display = !filter || card.dataset.accountType === filter ? "block" : "none";
+  });
+}
+
+document.getElementById('accountSelect')?.addEventListener('change', function() {
+  let type = this.selectedOptions[0].dataset.type;
+  let balance = parseFloat(this.selectedOptions[0].dataset.balance).toFixed(2);
+  document.getElementById('accountInfo').innerText = `Account Type: ${type}, Balance: $${balance}`;
+});
+
+async function toggleCard(cardId) {
+  const url = `/toggle_card_view/${cardId}`;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (res.redirected) {
+      window.location.href = res.url;
+      return;
+    }
+
+    const data = await res.json();
+
+    const card = document.getElementById(`card${cardId}`);
+    const btn = card.querySelector(`.toggle-btn[data-card-id="${cardId}"]`);
+    const badge = card.querySelector(".card-status");
+
+    if (badge && btn) {
+      if (badge.textContent === "Blocked") {
+        badge.textContent = "Active";
+        badge.classList.remove("bg-danger");
+        badge.classList.add("bg-success");
+        btn.textContent = "Block";
+      } else {
+        badge.textContent = "Blocked";
+        badge.classList.remove("bg-success");
+        badge.classList.add("bg-danger");
+        btn.textContent = "Unblock";
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Error toggling card.");
+  }
+}
+
+async function deleteCard(cardId) {
+  if (!confirm("Are you sure you want to delete this card?")) return;
+  const url = `/card/delete/${cardId}`;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "X-Requested-With": "XMLHttpRequest" }
+    });
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById(`card${cardId}`).closest('.card-item').remove();
+    } else {
+      alert(data.error || "Error deleting card.");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Error deleting card.");
+  }
+}
+</script>
 {% endblock %}
