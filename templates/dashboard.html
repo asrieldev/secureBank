@@ -394,70 +394,88 @@ body, h2, h3, h4, h5, h6, p, a, td, th {
     {% endfor %}
   </div>
   {% endif %}
-    <div class="container-fluid">
-  <div class="d-flex 
-    {% if cards|length < 3 %}
-      justify-content-center flex-wrap
-    {% else %}
-      flex-row flex-nowrap overflow-auto
-    {% endif %}
-    gap-3 p-2"
-  >
-  {% for card in cards %}
-  <div class="card-container" style="flex: 0 0 auto;">
+  <div class="container-fluid">
 
-    <!-- Premium Glass Flip Card -->
-    <div class="card-premium flip-card" id="card{{ card.id }}">
-      <div class="flip-card-inner" id="cardInner{{ card.id }}">
+  <!-- Toggle Button -->
+ <button id="toggleCardsBtn" style="border:none;background:none;padding:0;color:black;font-size:1rem;" onmouseover="this.style.color='blue'" onmouseout="this.style.color='black'">Show Cards</button>
 
-        <!-- Card Front -->
-        <div class="flip-card-front card-front-premium p-3 d-flex flex-column justify-content-between">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="card-bank-premium">SecureBank</span>
-            <span class="card-chip-premium"></span>
-          </div>
-          <div class="d-flex align-items-center mt-2 mb-3">
-            <span class="card-number-premium ms-1">
-              {{ card.card_number[:4] }} **** **** {{ card.card_number[-4:] }}
-            </span>
-          </div>
-          <div class="d-flex justify-content-between align-items-end mt-auto">
-            <div>
-              <div class="card-name-premium">
-                {{ current_user.first_name }} {{ current_user.last_name }} ({{ card.account.account_type|capitalize }})
+
+<style>
+.no-border-btn {
+  border: none !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+</style>
+
+
+  <!-- Cards Section -->
+  <div id="cardsContainer" style="display:none;">
+    <div class="d-flex 
+      {% if cards|length < 3 %}
+        justify-content-center flex-wrap
+      {% else %}
+        flex-row flex-nowrap overflow-auto
+      {% endif %}
+      gap-3 p-2"
+    >
+      {% for card in cards %}
+      <div class="card-container" style="flex: 0 0 auto;">
+        <!-- Premium Glass Flip Card -->
+        <div class="card-premium flip-card" id="card{{ card.id }}">
+          <div class="flip-card-inner" id="cardInner{{ card.id }}">
+
+            <!-- Card Front -->
+            <div class="flip-card-front card-front-premium p-3 d-flex flex-column justify-content-between">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="card-bank-premium">SecureBank</span>
+                <span class="card-chip-premium"></span>
               </div>
-              <div class="card-expiry-premium">
-                <span class="text-muted"> Exp: {{ card.expiry_date }}</span>
+              <div class="d-flex align-items-center mt-2 mb-3">
+                <span class="card-number-premium ms-1">
+                  {{ card.card_number[:4] }} **** **** {{ card.card_number[-4:] }}
+                </span>
+              </div>
+              <div class="d-flex justify-content-between align-items-end mt-auto">
+                <div>
+                  <div class="card-name-premium">
+                    {{ current_user.first_name }} {{ current_user.last_name }} ({{ card.account.account_type|capitalize }})
+                  </div>
+                  <div class="card-expiry-premium">
+                    <span class="text-muted"> Exp: {{ card.expiry_date }}</span>
+                  </div>
+                </div>
+                <div class="premium-logo">
+                  <svg width="48" height="28" viewBox="0 0 48 28" fill="none">
+                    <ellipse cx="14" cy="14" rx="14" ry="14" fill="#FFD700"/>
+                    <ellipse cx="34" cy="14" rx="14" ry="14" fill="#C0C0C0" fill-opacity="0.7"/>
+                  </svg>
+                </div>
               </div>
             </div>
-            <div class="premium-logo">
-              <svg width="48" height="28" viewBox="0 0 48 28" fill="none">
-                <ellipse cx="14" cy="14" rx="14" ry="14" fill="#FFD700"/>
-                <ellipse cx="34" cy="14" rx="14" ry="14" fill="#C0C0C0" fill-opacity="0.7"/>
-              </svg>
+
+            <!-- Card Back -->
+            <div class="flip-card-back card-back-premium p-3">
+              <div class="premium-stripe"></div>
+              <div class="d-flex justify-content-between mt-4">
+                <p><strong>CVV:</strong> {{ card.cvv }}</p>
+                <p><strong>Account ID:</strong> {{ card.account_id }}</p>
+              </div>
+              <div class="d-flex justify-content-between small text-muted mt-3">
+                <span>Issued: {{ card.created_at.strftime('%b %Y') }}</span>
+                <span>SecureBank</span>
+              </div>
             </div>
+
           </div>
         </div>
-
-        <!-- Card Back -->
-        <div class="flip-card-back card-back-premium p-3">
-          <div class="premium-stripe"></div>
-          <div class="d-flex justify-content-between mt-4">
-            <p><strong>CVV:</strong> {{ card.cvv }}</p>
-            <p><strong>Account ID:</strong> {{ card.account_id }}</p>
-          </div>
-          <div class="d-flex justify-content-between small text-muted mt-3">
-            <span>Issued: {{ card.created_at.strftime('%b %Y') }}</span>
-            <span>SecureBank</span>
-          </div>
-        </div>
-
       </div>
+      {% endfor %}
     </div>
   </div>
-  {% endfor %}
+
 </div>
-</div>
+
 
   <!-- Cards, Accounts, UPI -->
   <div class="row mb-4">
@@ -658,5 +676,16 @@ function loadTransactions() {
 }
 function showAnalytics() { alert('Analytics coming soon!'); }
 function showSecurity() { alert('Security coming soon!'); }
+
+document.getElementById("toggleCardsBtn").addEventListener("click", function () {
+  const container = document.getElementById("cardsContainer");
+  if (container.style.display === "none") {
+    container.style.display = "flex"; // Show cards
+    this.textContent = "Hide Cards";
+  } else {
+    container.style.display = "none"; // Hide cards
+    this.textContent = "Show Cards";
+  }
+});
 </script>
 {% endblock %}
