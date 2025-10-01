@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Statements{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="mb-4">Transaction Statement</h2>
+
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>ID</th>
+        {% if current_user.is_admin %}<th>Username</th>{% endif %}
+        <th>Account No</th>
+        <th>Type</th>
+        <th>Amount</th>
+        <th>Description</th>
+        <th>Timestamp</th>
+        <th>Fraudulent</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in transactions %}
+      <tr>
+        <td>{{ t.id }}</td>
+        {% if current_user.is_admin %}<td>{{ t.username }}</td>{% endif %}
+        <td>{{ t.account_number if current_user.is_admin else "" }}</td>
+        <td>{{ t.transaction_type }}</td>
+        <td>{{ "%.2f"|format(t.amount) }}</td>
+        <td>{{ t.description }}</td>
+        <td>{{ t.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+        <td>{{ "Yes" if t.is_fraudulent else "No" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <a href="{{ url_for('download_statement') }}" class="btn btn-success mt-3">Download PDF Statement</a>
+</div>
+{% endblock %}

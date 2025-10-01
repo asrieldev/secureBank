@@ -4,6 +4,134 @@
 
 {% block content %}
 <style>
+  /* Premium Card Dimensions */
+.card-premium {
+    width: 340px;
+    height: 210px;
+    border-radius: 18px;
+    background: linear-gradient(120deg, #232526 0%, #414345 100%);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25), 0 1.5px 8px 0 rgba(255,215,0,0.08);
+    color: #fff;
+    font-family: 'Segoe UI', 'Georgia', serif;
+    position: relative;
+    margin: 0 auto;
+    overflow: visible;
+    transition: transform 0.4s cubic-bezier(.4,2,.3,1), box-shadow 0.4s;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.card-premium:hover {
+    transform: translateY(-7px) scale(1.025);
+    box-shadow: 0 16px 40px 0 rgba(31, 38, 135, 0.35), 0 2px 12px 0 rgba(255,215,0,0.12);
+}
+.card-front-premium {
+    width: 100%;
+    height: 100%;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #232526 60%, #b3b2ab 100%);
+    box-shadow: 0 2px 18px rgba(80,96,112,0.18);
+    color: #fff;
+    font-family: 'Segoe UI', 'Georgia', serif;
+    position: relative;
+    padding: 24px 22px 18px 22px !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.card-bank-premium {
+    font-size: 1.rem;
+    letter-spacing: 1.2px;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 8px #0002;
+}
+.card-chip-premium {
+    width: 44px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #e7e6ff 60%, #bfae6a 100%);
+    box-shadow: 0 1px 2px #bfbfbf, inset 1px 1px 2px #dedede;
+    display: inline-block;
+}
+.card-number-premium {
+    font-size: 1rem;
+    font-family: 'Consolas', monospace;
+    font-weight: bold;
+    letter-spacing: 2.8px;
+    color: #fff;
+    text-shadow: 0 1px 8px #0003;
+}
+.card-name-premium {
+    font-size: 1rem;
+    color: #fff;
+    letter-spacing: 0.7px;
+    font-weight: 500;
+}
+.card-expiry-premium {
+    font-size: 0.97rem;
+    color: rgb(216, 216, 216);
+    font-weight: 400;
+}
+.account-type-premium {
+    font-size: 0.98rem;
+    color: #c3c2bcb7;
+    font-weight: 500;
+}
+.premium-logo {
+    margin-left: 10px;
+    margin-bottom: 2px;
+}
+.card-status-badges .badge {
+    font-size: 0.82rem;
+    padding: 5px 9px;
+    margin-right: 4px;
+}
+.flip-card {
+    perspective: 1500px;
+    width: 340px;
+    height: 210px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.9s cubic-bezier(0.4, 0.2, 0.2, 1);
+    transform-style: preserve-3d;
+}
+.flipped {
+    transform: rotateY(180deg);
+}
+.flip-card-front,
+.flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 0;
+}
+.flip-card-back {
+    background: linear-gradient(135deg, #232526 60%, #b3b2ab 100%);
+    box-shadow: 0 2px 18px rgba(80,96,112,0.18);
+    color: #fff;
+    transform: rotateY(180deg);
+    padding: 24px 22px 18px 22px !important;
+}
+.premium-stripe {
+    width: 100%;
+    height: 36px;
+    background: linear-gradient(90deg, #232526 70%, rgb(213, 184, 23) 100%);
+    margin-top: 8px;
+    border-radius: 6px;
+    opacity: 0.85;
+}
 /* --- Global Typography --- */
 body, h2, h3, h4, h5, h6, p, a, td, th {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -135,6 +263,68 @@ body, h2, h3, h4, h5, h6, p, a, td, th {
     background: rgba(0,0,0,0.03);
     transition: background 0.2s ease;
 }
+/*-----fip cards -----*/
+/* Flip container */
+.flip-card {
+  perspective: 1500px;
+  width: 340px;
+  height: 210px;
+  
+}
+
+
+/* Inner wrapper */
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.9s cubic-bezier(0.4, 0.2, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+/* Flip on hover */
+.flip-card:hover .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+/* Front and Back */
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 18px;
+  background: whitesmoke;
+  
+}
+
+/* Back side */
+.flip-card-back {
+  transform: rotateY(180deg);
+   background: #ffffff; /* pure white background */
+  color: #ffffff;      /* all text in white */
+}
+/* Ensure front side has black text */
+.card-front-premium {
+  background: #ffffff;   /* keep white background */
+  color: #000000;        /* base text black */
+}
+
+/* Force text elements specifically */
+.card-front-premium .card-bank-premium,
+.card-front-premium .card-number-premium,
+.card-front-premium .card-name-premium,
+.card-front-premium .card-expiry-premium {
+  color: #000000 !important;
+}
+
+/* Make the muted expiry label a softer dark grey */
+.card-front-premium .text-muted {
+  color: #555555 !important;
+}
+
+
 
 /* --- Fraud Score --- */
 .fraud-score.low { color: #28a745; font-weight: 600; }
@@ -150,6 +340,15 @@ body, h2, h3, h4, h5, h6, p, a, td, th {
   height: 40px;
   animation: spin 1s linear infinite;
 }
+@media (max-width: 768px) {
+  .card-container {
+    flex: 1 1 100% !important;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: center;
+  }
+}
+
 
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
@@ -167,6 +366,9 @@ body, h2, h3, h4, h5, h6, p, a, td, th {
 
   <!-- Greeting -->
   <h2 class="greeting-header mb-4"><i class="fas fa-user-circle me-1"></i> {{ current_user.first_name }}😊👋</h2>
+  <div class="d-flex flex-row flex-nowrap overflow-auto gap-3 p-2">
+
+</div>
 
 
   <!-- Accounts Overview (Horizontal) -->
@@ -192,6 +394,70 @@ body, h2, h3, h4, h5, h6, p, a, td, th {
     {% endfor %}
   </div>
   {% endif %}
+    <div class="container-fluid">
+  <div class="d-flex 
+    {% if cards|length < 3 %}
+      justify-content-center flex-wrap
+    {% else %}
+      flex-row flex-nowrap overflow-auto
+    {% endif %}
+    gap-3 p-2"
+  >
+  {% for card in cards %}
+  <div class="card-container" style="flex: 0 0 auto;">
+
+    <!-- Premium Glass Flip Card -->
+    <div class="card-premium flip-card" id="card{{ card.id }}">
+      <div class="flip-card-inner" id="cardInner{{ card.id }}">
+
+        <!-- Card Front -->
+        <div class="flip-card-front card-front-premium p-3 d-flex flex-column justify-content-between">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="card-bank-premium">SecureBank</span>
+            <span class="card-chip-premium"></span>
+          </div>
+          <div class="d-flex align-items-center mt-2 mb-3">
+            <span class="card-number-premium ms-1">
+              {{ card.card_number[:4] }} **** **** {{ card.card_number[-4:] }}
+            </span>
+          </div>
+          <div class="d-flex justify-content-between align-items-end mt-auto">
+            <div>
+              <div class="card-name-premium">
+                {{ current_user.first_name }} {{ current_user.last_name }} ({{ card.account.account_type|capitalize }})
+              </div>
+              <div class="card-expiry-premium">
+                <span class="text-muted"> Exp: {{ card.expiry_date }}</span>
+              </div>
+            </div>
+            <div class="premium-logo">
+              <svg width="48" height="28" viewBox="0 0 48 28" fill="none">
+                <ellipse cx="14" cy="14" rx="14" ry="14" fill="#FFD700"/>
+                <ellipse cx="34" cy="14" rx="14" ry="14" fill="#C0C0C0" fill-opacity="0.7"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card Back -->
+        <div class="flip-card-back card-back-premium p-3">
+          <div class="premium-stripe"></div>
+          <div class="d-flex justify-content-between mt-4">
+            <p><strong>CVV:</strong> {{ card.cvv }}</p>
+            <p><strong>Account ID:</strong> {{ card.account_id }}</p>
+          </div>
+          <div class="d-flex justify-content-between small text-muted mt-3">
+            <span>Issued: {{ card.created_at.strftime('%b %Y') }}</span>
+            <span>SecureBank</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+</div>
 
   <!-- Cards, Accounts, UPI -->
   <div class="row mb-4">
@@ -223,21 +489,8 @@ body, h2, h3, h4, h5, h6, p, a, td, th {
     </div>
 </div>
 
-    {% for card in cards %}
-    <div class="col-md-6 mb-3">
-      <div class="glass">
-        <div class="bank-card">
-          <div class="brand-mini mb-2">{{ card.card_type|capitalize }} • SecureBank</div>
-          <div class="number mb-3">{{ card.card_number }}</div>
-          <div class="d-flex justify-content-between">
-            <div><small>Card Holder</small><br><strong>{{ current_user.first_name }} {{ current_user.last_name }}</strong></div>
-           <div><small>Expiry</small><br><strong>{{ card.expiry_date }}</strong></div>
+   
 
-          </div>
-        </div>
-      </div>
-    </div>
-    {% endfor %}
 
     {% for account in accounts %}
     <div class="col-md-6 mb-3">
@@ -255,20 +508,36 @@ body, h2, h3, h4, h5, h6, p, a, td, th {
     </div>
     {% endfor %}
 
-    <div class="col-md-6 mb-3">
-      <div class="glass">
-        <h6>Your UPI IDs</h6>
-        {% if upis %}
-        <ul class="mb-0">
-          {% for upi in upis %}
+   <div class="d-flex justify-content-between flex-wrap gap-3">
+
+  <!-- UPI IDs -->
+  <div class="glass p-3 flex-fill" style="min-width: 300px; max-width: 48%;">
+    <h6>Your UPI IDs</h6>
+    {% if upis %}
+      <ul class="mb-0">
+        {% for upi in upis %}
           <li>{{ upi.upi_id }}</li>
-          {% endfor %}
-        </ul>
-        {% else %}
-        <p>No UPI linked yet.</p>
-        {% endif %}
-      </div>
-    </div>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No UPI linked yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- Account Statements -->
+  <div class="glass p-3 flex-fill text-center" style="min-width: 300px; max-width: 48%;">
+    <h6>📑 Account Statements</h6>
+    <p>
+      <a href="{{ url_for('request_statement_otp') }}" class="btn btn-outline-primary btn-sm">
+        Download Statement
+      </a>
+    </p>
+  </div>
+
+</div>
+
+
+      
 
       <div class="glass table-card">
         <h5 class="mb-3"><i class="fas fa-clock text-primary me-2"></i>Recent Transactions</h5>

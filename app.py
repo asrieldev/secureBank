@@ -1,13 +1,29 @@
 import os
+import random
+import smtplib
+import time
+import io
 from datetime import datetime
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+from flask import (
+    Flask, render_template, request, jsonify, redirect, url_for, flash,
+    session, send_file
+)
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_login import (
+    LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+)
 from werkzeug.security import generate_password_hash, check_password_hash
+
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+
 from fraud_detection import FraudDetector
-from flask import jsonify
+
 
 # ---------------- CONFIG ----------------
 load_dotenv()
@@ -721,6 +737,204 @@ def api_transactions():
         'fraud_score': t.fraud_score
     } for t in transactions])
 
+
+
+
+# ------------------------
+# --- Helper Functions ---
+# ------------------------
+
+def generate_otp():
+    return str(random.randint(100000, 999999))
+
+def send_email(to_email, subject, message):
+    sender_email = "ashrielnhembo.dev@gmail.com"  # your real email
+    sender_name = "SecureBank"
+    password = "mdsp qcvg uivq ypdd"  # your app password
+
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = f"{sender_name} <{sender_email}>"
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(message, 'plain'))
+
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender_email, password)
+        server.send_message(msg)
+        server.quit()
+
+        return True
+    except Exception as e:
+        print("Email error:", e)
+        return False
+
+# ------------------------
+# --- OTP Request ---
+# ------------------------
+@app.route('/statements/request-otp')
+@login_required
+def request_statement_otp():
+    otp = generate_otp()
+    session['statement_otp'] = otp
+    session['otp_time'] = time.time()
+
+    subject = "Your Banking Statement OTP"
+    message = f"Your OTP for statement download is: {otp}. It will expire in 5 minutes."
+    send_email(current_user.email, subject, message)
+
+    flash("An OTP has been sent to your registered email.", "info")
+    return render_template('verify_statement_otp.html')
+
+# ------------------------
+# --- OTP Verification ---
+# ------------------------
+@app.route('/statements/verify-otp', methods=['POST'])
+@login_required
+def verify_statement_otp():
+    user_otp = request.form.get("otp")
+    session_otp = session.get("statement_otp")
+    otp_time = session.get("otp_time")
+
+    if not session_otp or not otp_time:
+        flash("OTP expired or not generated. Please request again.", "danger")
+        return redirect(url_for('request_statement_otp'))
+
+    if time.time() - otp_time > 300:  # 5 minutes expiry
+        session.pop("statement_otp", None)
+        session.pop("otp_time", None)
+        flash("OTP expired. Please request a new one.", "warning")
+        return redirect(url_for('request_statement_otp'))
+
+    if user_otp == session_otp:
+        session.pop("statement_otp", None)
+        session.pop("otp_time", None)
+        return redirect(url_for('view_statement'))
+    else:
+        flash("Invalid OTP. Please try again.", "danger")
+        return redirect(url_for('request_statement_otp'))
+
+# ------------------------
+# --- View Statement ---
+# ------------------------
+@app.route('/statements/view')
+@login_required
+def view_statement():
+    if current_user.is_admin:
+        transactions = db.session.query(
+            Transaction.id,
+            User.username,
+            Account.account_number,
+            Transaction.transaction_type,
+            Transaction.amount,
+            Transaction.description,
+            Transaction.timestamp,
+            Transaction.is_fraudulent
+        ).join(Account, Transaction.account_id == Account.id)\
+         .join(User, Account.user_id == User.id)\
+         .order_by(Transaction.timestamp.desc()).all()
+    else:
+        accounts = Account.query.filter_by(user_id=current_user.id).all()
+        account_ids = [acc.id for acc in accounts]
+        transactions = Transaction.query.filter(Transaction.account_id.in_(account_ids))\
+            .order_by(Transaction.timestamp.desc()).all()
+
+    return render_template("statements.html", transactions=transactions)
+
+# ------------------------
+# --- Download Statement PDF ---
+# ------------------------
+@app.route('/statements/download')
+@login_required
+def download_statement():
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+
+    # Title
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(100, 820, f"SECUREBANK Transaction Statement")
+    # Title
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(100, 800, f"Transaction Statement for {current_user.first_name} {current_user.last_name}")
+
+    # Subtitle with generation date
+    p.setFont("Helvetica", 12)
+    p.drawString(100, 800, f"Generated on: {time.strftime('%Y-%m-%d %H:%M:%S')}")
+
+    # Account details header
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(100, 780, "Account Details:")
+    p.setFont("Helvetica", 10)
+
+    # Fetch account info
+    accounts = Account.query.filter_by(user_id=current_user.id).all()
+    account_details_y = 760
+    for acc in accounts:
+        p.drawString(120, account_details_y, f"Name: {current_user.username}")
+        p.drawString(120, account_details_y - 15, f"Email: {current_user.email}")
+        p.drawString(120, account_details_y - 30, f"Account Number: {acc.account_number}")
+        p.drawString(120, account_details_y - 45, f"Account Type: {acc.account_type if hasattr(acc, 'account_type') else 'N/A'}")
+        account_details_y -= 60  # space for next account
+
+    y = account_details_y - 20  # space before table
+
+    # Table headers
+    p.setFont("Helvetica-Bold", 10)
+    headers = ["ID", "Type", "Amount", "Description", "Timestamp", "Fraudulent"]
+    x_positions = [40, 140, 200, 260, 420, 500]
+
+    for i, header in enumerate(headers):
+        p.drawString(x_positions[i], y, header)
+
+    y -= 20
+    p.setFont("Helvetica", 9)
+
+    # Transactions
+    if current_user.is_admin:
+        transactions = db.session.query(
+            Transaction.id,
+            User.username,
+            Account.account_number,
+            Transaction.transaction_type,
+            Transaction.amount,
+            Transaction.description,
+            Transaction.timestamp,
+            Transaction.is_fraudulent
+        ).join(Account, Transaction.account_id == Account.id)\
+         .join(User, Account.user_id == User.id)\
+         .order_by(Transaction.timestamp.desc()).all()
+    else:
+        account_ids = [acc.id for acc in accounts]
+        transactions = Transaction.query.filter(Transaction.account_id.in_(account_ids))\
+            .order_by(Transaction.timestamp.desc()).all()
+
+    # Table rows
+    for t in transactions:
+        if y < 50:
+            p.showPage()
+            y = 800
+            p.setFont("Helvetica-Bold", 10)
+            for i, header in enumerate(headers):
+                p.drawString(x_positions[i], y, header)
+            y -= 20
+            p.setFont("Helvetica", 9)
+
+        p.drawString(x_positions[0], y, str(t.id))
+        p.drawString(x_positions[1], y, t.transaction_type if hasattr(t, 'transaction_type') else "")
+        amount_str = f"({abs(t.amount):.2f})" if t.amount < 0 else f"{t.amount:.2f}"
+        p.drawString(x_positions[2], y, amount_str)
+        p.drawString(x_positions[3], y, (t.description or "")[:30])
+        p.drawString(x_positions[4], y, t.timestamp.strftime("%Y-%m-%d %H:%M") if hasattr(t, 'timestamp') else "")
+        p.drawString(x_positions[5], y, "Yes" if getattr(t, 'is_fraudulent', False) else "No")
+
+        y -= 15
+
+    p.showPage()
+    p.save()
+
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True, download_name="statement.pdf", mimetype='application/pdf')
 
 # ---------------- MAIN ----------------
 if __name__ == '__main__':

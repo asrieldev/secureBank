@@ -32,50 +32,43 @@
     {% for card in cards %}
     <div class="col-md-4 col-sm-6 col-12 card-item" data-account-type="{{ card.account.account_type }}">
       <div class="card-container">
-        <div class="card-glass flip-card" id="card{{ card.id }}">
+
+        <!-- Premium Glass Flip Card -->
+        <div class="card-premium flip-card" id="card{{ card.id }}">
           <div class="flip-card-inner" id="cardInner{{ card.id }}">
 
             <!-- Card Front -->
-            <div class="flip-card-front p-3 d-flex flex-column justify-content-between">
-              <div class="card-top">
-                <div class="chip3d"></div>
-                <img src="{{ url_for('static', filename='visa.png') }}" alt="Card Logo" class="card-logo">
+            <div class="flip-card-front card-front-premium p-3 d-flex flex-column justify-content-between">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="card-bank-premium">SecureBank</span>
+                <span class="card-chip-premium"></span>
               </div>
-
-              <h5 class="card-number mt-4">
-                {{ card.card_number[:4] }} **** **** {{ card.card_number[-4:] }}
-              </h5>
-
-              <div class="card-holder mt-2">
-                <h6 class="text-dark name">{{ current_user.first_name }} {{ current_user.last_name }}</h6>
-                <small class="account-type text-muted">
-                  {{ card.account.account_type|capitalize }} Account
-                </small><br>
-                <small class="text-muted">
-                  Balance: ${{ "%.2f"|format(card.account.balance) }}
-                </small><br>
-                <small class="text-muted">Exp: {{ card.expiry_date }}</small>
+              <div class="d-flex align-items-center mt-2 mb-3">
+                <span class="card-number-premium ms-1">{{ card.card_number[:4] }} **** **** {{ card.card_number[-4:] }}</span>
               </div>
-
-              <div class="card-status-badges mt-2">
-                {% if card.blocked %}
-                  <span class="badge bg-danger card-status">Blocked</span>
-                {% else %}
-                  <span class="badge bg-success card-status">Active</span>
-                {% endif %}
-                {% if card.transactions|selectattr('is_fraudulent')|list %}
-                  <span class="badge bg-warning text-dark">Fraud Alert</span>
-                {% endif %}
+              <div class="d-flex justify-content-between align-items-end mt-auto">
+                <div>
+                  <div class="card-name-premium">{{ current_user.first_name }} {{ current_user.last_name }} ({{ card.account.account_type|capitalize }})</div>
+                  <div class="card-expiry-premium">
+                    <span class="text-muted"> {{ card.expiry_date }}
+                  </div>
+                </div>
+                <div class="premium-logo">
+                  <svg width="48" height="28" viewBox="0 0 48 28" fill="none"><ellipse cx="14" cy="14" rx="14" ry="14" fill="#FFD700"/><ellipse cx="34" cy="14" rx="14" ry="14" fill="#C0C0C0" fill-opacity="0.7"/></svg>
+                </div>
               </div>
+             
+          
             </div>
 
             <!-- Card Back -->
-            <div class="flip-card-back p-3">
-              <div class="d-flex justify-content-between">
+            <div class="flip-card-back card-back-premium p-3">
+              <div class="premium-stripe"></div>
+              <div class="d-flex justify-content-between mt-4">
                 <p><strong>CVV:</strong> {{ card.cvv }}</p>
                 <p><strong>Account ID:</strong> {{ card.account_id }}</p>
               </div>
-              <div class="d-flex justify-content-between small text-muted">
+              <div class="d-flex justify-content-between small text-muted mt-3">
                 <span>Issued: {{ card.created_at.strftime('%b %Y') }}</span>
                 <span>SecureBank</span>
               </div>
@@ -84,15 +77,29 @@
           </div>
         </div>
 
-        <!-- Buttons -->
-        <div class="card-actions">
-          <button class="btn btn-link" onclick="flipCard('{{ card.id }}')">Flip</button>
-          <a href="{{ url_for('account_detail', account_id=card.account.id) }}" class="btn btn-link">View Account</a>
-          <button class="btn btn-link toggle-btn" data-card-id="{{ card.id }}" onclick="toggleCard('{{ card.id }}')">
+        <!-- Card Actions (Updated Design) -->
+        <div class="card-actions justify-content-between px-2 py-2" style="background: transparent; border: none; border-radius: 0 0 18px 18px;">
+          <button class="btn btn-sm btn-outline-secondary rounded-pill me-1 d-flex align-items-center" style="background: transparent; border: none; color: #111;" onclick="flipCard('{{ card.id }}')" title="Show Card Back">
+            <i class="bi bi-arrow-repeat me-1"></i> Flip
+          </button>
+          <a href="{{ url_for('account_detail', account_id=card.account.id) }}" class="btn btn-sm btn-outline-info rounded-pill me-1 d-flex align-items-center" style="background: transparent; border: none; color: #111;" title="View Linked Account">
+            <i class="bi bi-person-badge me-1"></i> Account
+          </a>
+          <button 
+            class="btn btn-sm rounded-pill me-1 d-flex align-items-center toggle-btn {% if card.blocked %}card-blocked{% else %}card-unblocked{% endif %}"
+            style="background: transparent; border: none;"
+            data-card-id="{{ card.id }}"
+            onclick="toggleCard('{{ card.id }}');"
+            title="{% if card.blocked %}Unblock{% else %}Block{% endif %} Card"
+          >
+            <i class="bi {% if card.blocked %}bi-unlock{% else %}bi-lock{% endif %} me-1"></i> 
             {% if card.blocked %}Unblock{% else %}Block{% endif %}
           </button>
           <button class="btn btn-link text-danger" onclick="deleteCard('{{ card.id }}')">Delete</button>
+
+          </button>
         </div>
+
       </div>
     </div>
     {% endfor %}
@@ -145,40 +152,99 @@
   </div>
 </div>
 
-<!-- === Card Styling === -->
+<!-- Premium Card CSS -->
 <style>
-  
-.card-container {
+/* Premium Card Dimensions */
+.card-premium {
+    width: 340px;
+    height: 210px;
+    border-radius: 18px;
+    background: linear-gradient(120deg, #232526 0%, #414345 100%);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.25), 0 1.5px 8px 0 rgba(255,215,0,0.08);
+    color: #fff;
+    font-family: 'Segoe UI', 'Georgia', serif;
+    position: relative;
+    margin: 0 auto;
+    overflow: visible;
+    transition: transform 0.4s cubic-bezier(.4,2,.3,1), box-shadow 0.4s;
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
+}
+.card-premium:hover {
+    transform: translateY(-7px) scale(1.025);
+    box-shadow: 0 16px 40px 0 rgba(31, 38, 135, 0.35), 0 2px 12px 0 rgba(255,215,0,0.12);
+}
+.card-front-premium {
+    width: 100%;
     height: 100%;
-}
-
-.card-glass {
-    background: linear-gradient(135deg, #d3d3d000, #6186a33f);
-    border-radius: 20px;
-    color: white;
-    font-family: 'Georgia', serif;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-    transition: transform 0.4s ease, box-shadow 0.4s ease;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #232526 60%, #b3b2ab 100%);
+    box-shadow: 0 2px 18px rgba(80,96,112,0.18);
+    color: #fff;
+    font-family: 'Segoe UI', 'Georgia', serif;
+    position: relative;
+    padding: 24px 22px 18px 22px !important;
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
 }
-
-.card-glass:hover {
-    transform: translateY(-5px) scale(1.02);
-    box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+.card-bank-premium {
+    font-size: 1.rem;
+    letter-spacing: 1.2px;
+    font-weight: 600;
+    color: white;
+    text-shadow: 0 1px 8px #0002;
 }
-
+.card-chip-premium {
+    width: 44px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #e7e6ff 60%, #bfae6a 100%);
+    box-shadow: 0 1px 2px #bfbfbf, inset 1px 1px 2px #dedede;
+    display: inline-block;
+}
+.card-number-premium {
+    font-size: 1rem;
+    font-family: 'Consolas', monospace;
+    font-weight: bold;
+    letter-spacing: 2.8px;
+    color: #fff;
+    text-shadow: 0 1px 8px #0003;
+}
+.card-name-premium {
+    font-size: 1rem;
+    color: #fff;
+    letter-spacing: 0.7px;
+    font-weight: 500;
+}
+.card-expiry-premium {
+    font-size: 0.97rem;
+    color: rgb(216, 216, 216);
+    font-weight: 400;
+}
+.account-type-premium {
+    font-size: 0.98rem;
+    color: #c3c2bcb7;
+    font-weight: 500;
+}
+.premium-logo {
+    margin-left: 10px;
+    margin-bottom: 2px;
+}
+.card-status-badges .badge {
+    font-size: 0.82rem;
+    padding: 5px 9px;
+    margin-right: 4px;
+}
 .flip-card {
     perspective: 1500px;
-    width: 100%;
-    height: 300px;
+    width: 340px;
+    height: 210px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
-
 .flip-card-inner {
     position: relative;
     width: 100%;
@@ -186,90 +252,46 @@
     transition: transform 0.9s cubic-bezier(0.4, 0.2, 0.2, 1);
     transform-style: preserve-3d;
 }
-
 .flipped {
     transform: rotateY(180deg);
 }
-
 .flip-card-front,
 .flip-card-back {
     position: absolute;
     width: 100%;
     height: 100%;
     backface-visibility: hidden;
-    border-radius: 20px;
+    border-radius: 18px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 20px;
+    padding: 0;
 }
-
-.flip-card-front {
-    z-index: 2;
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.flip-card-back {
+.flip-card-back.card-back-premium {
+    background: linear-gradient(120deg, #232526 60%, #767672 100%);
+    color: #fff;
+    padding: 24px 22px 18px 22px !important;
     transform: rotateY(180deg);
     z-index: 1;
-    background: rgba(240, 240, 240, 0.9);
-    color: #333;
+    position: absolute;
 }
-
-.card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.chip3d {
-    width: 50px;
-    height: 35px;
+.premium-stripe {
+    width: 100%;
+    height: 36px;
+    background: linear-gradient(90deg, #232526 70%, rgb(213, 184, 23) 100%);
+    margin-top: 8px;
     border-radius: 6px;
-    background: linear-gradient(145deg, #d1d1d1, #a0a0a0);
-    box-shadow: inset 2px 2px 5px rgba(255,255,255,0.5),
-                inset -2px -2px 5px rgba(0,0,0,0.2);
+    opacity: 0.85;
 }
-
-.card-logo {
-    width: 60px;
-}
-
-.card-number {
-    font-size: 1.4rem;
-    letter-spacing: 3px;
-    font-weight: bold;
-    color: #373434; 
-}
-
-.card-holder .name {
-    font-weight: bold;
-    font-size: 1rem;
-}
-
-.card-holder .account-type {
-    font-size: 0.85rem;
-}
-
-.card-status-badges {
-    margin-top: 10px;
-}
-
-.card-status-badges .badge {
-    font-size: 0.8rem;
-    padding: 5px;
-}
-
 .card-actions {
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
     gap: 0.5rem;
     padding: 0.5rem;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(37, 36, 36, 0.1);
     border-top: 1px solid rgba(255, 255, 255, 0.3);
 }
-
 .btn-glass {
     background: rgba(255, 255, 255, 0.3);
     backdrop-filter: blur(12px);
@@ -278,12 +300,25 @@
     font-weight: 500;
     border: none;
 }
-
 .btn-glass:hover {
     background: rgba(255, 255, 255, 0.5);
 }
+@media (max-width: 400px) {
+    .card-premium, .flip-card {
+        width: 98vw;
+        min-width: 0;
+        max-width: 100vw;
+        height: 170px;
+    }
+}
+/* Card blocked/unblocked color classes */
+.card-blocked {
+    color: #dc3545 !important;
+}
+.card-unblocked {
+    color: #111 !important;
+}
 </style>
-
 <script>
 function flipCard(cardId) {
     document.getElementById(`cardInner${cardId}`).classList.toggle("flipped");
@@ -308,56 +343,43 @@ async function toggleCard(cardId) {
     try {
         const res = await fetch(url, {
             method: "POST",
-            headers: {
-                "X-Requested-With": "XMLHttpRequest",
-                "Content-Type": "application/json"
-            }
+            headers: { "X-Requested-With": "XMLHttpRequest", "Content-Type": "application/json" }
         });
         const data = await res.json();
         if (!data.success) {
             alert(data.error || "Error toggling card.");
             return;
         }
-        const cardItem = document.getElementById(`card${cardId}`).closest('.card-item');
-        const badge = cardItem.querySelector(".card-status");
-        const btn = cardItem.querySelector(`.toggle-btn[data-card-id="${cardId}"]`);
-        if (badge && btn) {
-            if (data.blocked) {
-                badge.textContent = "Blocked";
-                badge.classList.remove("bg-success");
-                badge.classList.add("bg-danger");
-                btn.textContent = "Unblock";
-            } else {
-                badge.textContent = "Active";
-                badge.classList.remove("bg-danger");
-                badge.classList.add("bg-success");
-                btn.textContent = "Block";
-            }
-        }
-    } catch (err) {
-        console.error(err);
-        alert("Error toggling card.");
+        location.reload();
+    } catch (error) {
+        console.error(error);
     }
 }
 
 async function deleteCard(cardId) {
-    if (!confirm("Are you sure you want to delete this card?")) return;
-    const url = `/card/delete/${cardId}`;
-    try {
-        const res = await fetch(url, {
-            method: "POST",
-            headers: { "X-Requested-With": "XMLHttpRequest" }
-        });
-        const data = await res.json();
-        if (data.success) {
-            document.getElementById(`card${cardId}`).closest('.card-item').remove();
-        } else {
-            alert(data.error || "Error deleting card.");
+    if (confirm("Are you sure you want to delete this card?")) {
+        try {
+            const res = await fetch(`/card/delete/${cardId}`, {
+                method: "POST",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Content-Type": "application/json"
+                }
+            });
+            const data = await res.json();
+            if (data.success) {
+                // Remove card from DOM without full reload
+                const cardElement = document.getElementById(`card${cardId}`);
+                if (cardElement) cardElement.closest(".card-item").remove();
+            } else {
+                alert(data.error || "Error deleting card.");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Error deleting card.");
         }
-    } catch (err) {
-        console.error(err);
-        alert("Error deleting card.");
     }
 }
 </script>
+
 {% endblock %}
