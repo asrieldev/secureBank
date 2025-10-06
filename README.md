@@ -85,14 +85,14 @@ securBank/
 
 ```bash
 # Clone repo
-git clone <repo-url>
+git clone https://github.com/asrieldev/secureBank
 cd secureBank
 
 # Install dependencies
 pip install -r requirements.txt
 
 # Initialize database
-python api/init-db.py
+python setup.py 
 
 # Run app
 flask run/ python app.py
