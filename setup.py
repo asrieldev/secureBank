@@ -268,7 +268,7 @@ def main():
         print(f"Admin -> username: admin | password: admin123")
         if len(users) > 1:
             sample_user = users[1]
-            print(f"User -> username: {sample_user.username} | password: password123")
+            print(f"User -> username: {sample_user.username} | password: password123") #printing the sample user created
 
 
 if __name__ == "__main__":
